@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Einsflix</title>
 
-<link rel="icon" type="image/jpeg" href="./pic.jpg">
+<link rel="icon" href="./pic.jpg">
 <script src="https://www.youtube.com/iframe_api"></script>
 
 <style>
@@ -21,8 +21,7 @@ body {
   color: var(--text);
 }
 
-/* ================= LOGIN ================= */
-
+/* LOGIN */
 #loginView {
   display: flex;
   flex-direction: column;
@@ -34,19 +33,18 @@ body {
 
 #loginView input {
   padding: 10px;
-  border: none;
   border-radius: 8px;
+  border: none;
 }
 
 #loginView button {
   padding: 10px;
-  border: none;
   border-radius: 8px;
+  border: none;
   cursor: pointer;
 }
 
-/* ================= APP ================= */
-
+/* APP */
 #appView {
   display: none;
 }
@@ -55,21 +53,21 @@ body {
   padding: 20px;
 }
 
+/* TOPBAR */
 .topbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 10px 20px;
 }
 
-.logout {
+/* LOGO */
+.logo img {
+  width: 60px;
   cursor: pointer;
-  background: #333;
-  padding: 6px 10px;
-  border-radius: 6px;
 }
 
 /* ROWS */
-
 .row {
   margin-bottom: 30px;
 }
@@ -89,14 +87,12 @@ body {
 }
 
 /* VIDEO CARD */
-
 .video {
   min-width: 200px;
   background: #2a2926;
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  position: relative;
 }
 
 .video img {
@@ -109,17 +105,7 @@ body {
   font-size: 12px;
 }
 
-.mini-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 4px;
-  width: 0%;
-  background: red;
-}
-
-/* ================= PLAYER ================= */
-
+/* PLAYER */
 .overlay {
   position: fixed;
   inset: 0;
@@ -147,6 +133,14 @@ body {
   height: 100%;
 }
 
+/* LOGOUT */
+.logout {
+  cursor: pointer;
+  background: #333;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
 </style>
 </head>
 
@@ -166,7 +160,13 @@ body {
 <div id="appView">
 
   <div class="topbar">
+
+    <div class="logo" onclick="location.reload()">
+      <img src="./pic.jpg">
+    </div>
+
     <div id="welcome"></div>
+
     <div class="logout" onclick="logout()">Logout</div>
   </div>
 
@@ -182,8 +182,17 @@ body {
       <div class="row-scroll" id="lol-videos"></div>
     </div>
 
-  </div>
+    <div class="row">
+      <h2>Fußball</h2>
+      <div class="row-scroll" id="fussball-videos"></div>
+    </div>
 
+    <div class="row">
+      <h2>Mediathek</h2>
+      <div class="row-scroll" id="media-videos"></div>
+    </div>
+
+  </div>
 </div>
 
 <!-- 🎬 PLAYER -->
@@ -195,7 +204,7 @@ body {
 
 <script>
 
-/* ================= AUTH ================= */
+/* ================= LOGIN ================= */
 
 const FAKE_PASSWORD = "EinsAufDieEins";
 
@@ -207,10 +216,8 @@ function handleLogin() {
   if (!user || user.trim() === "") return;
 
   if (pass === FAKE_PASSWORD) {
-
     localStorage.setItem("user", user);
     localStorage.setItem("loggedIn", "true");
-
     startApp();
   } else {
     alert("Falsches Passwort");
@@ -230,7 +237,7 @@ function logout() {
   location.reload();
 }
 
-/* ================= APP START ================= */
+/* ================= APP ================= */
 
 function startApp() {
 
@@ -244,33 +251,45 @@ function startApp() {
 }
 
 window.onload = () => {
-  if (isLoggedIn()) {
-    startApp();
-  }
+  if (isLoggedIn()) startApp();
 };
 
 /* ================= YOUTUBE ================= */
 
 let player;
 
-/* VIDEO ID */
+/* 🔥 FIX: Shorts + youtu.be + normal */
 function getVideoId(url) {
-  return url.split("v=")[1]?.split("&")[0];
+
+  if (!url) return null;
+
+  if (url.includes("shorts/")) {
+    return url.split("shorts/")[1].split("?")[0];
+  }
+
+  if (url.includes("youtu.be/")) {
+    return url.split("youtu.be/")[1].split("?")[0];
+  }
+
+  if (url.includes("v=")) {
+    return url.split("v=")[1].split("&")[0];
+  }
+
+  return null;
 }
 
 /* CARD */
 function createVideo(item) {
 
   const id = getVideoId(item.link);
-  const thumb = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+  if (!id) return document.createElement("div");
 
   const div = document.createElement("div");
   div.className = "video";
 
   div.innerHTML = `
-    <img src="${thumb}">
+    <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
     <span>${item.title}</span>
-    <div class="mini-progress"></div>
   `;
 
   div.onclick = () => openPlayer(id);
@@ -278,27 +297,46 @@ function createVideo(item) {
   return div;
 }
 
-/* LOAD */
-async function loadColumn(id, container) {
+/* LOAD COLUMN */
+async function loadColumn(channelId, containerId) {
 
-  const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
-  const res = await fetch(
-    "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url)
-  );
+  try {
 
-  const data = await res.json();
+    const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
-  const box = document.getElementById(container);
-  box.innerHTML = "";
+    const res = await fetch(
+      "https://api.rss2json.com/v1/api.json?rss_url=" +
+      encodeURIComponent(url)
+    );
 
-  data.items.forEach(v => {
-    box.appendChild(createVideo(v));
-  });
+    const data = await res.json();
+
+    const box = document.getElementById(containerId);
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    if (!data.items) {
+      console.warn("Keine Daten:", channelId);
+      return;
+    }
+
+    data.items.forEach(v => {
+      box.appendChild(createVideo(v));
+    });
+
+  } catch (e) {
+    console.error("Fehler Channel:", channelId, e);
+  }
 }
 
+/* ALL CHANNELS */
 function loadAll() {
+
   loadColumn("UC5QM2OXKyZaNw13iLbuEpCg", "spandau-videos");
   loadColumn("UCeM9ckIXeJFvdt4bKpXvTqw", "lol-videos");
+  loadColumn("UCMQkXTIDVvVDh0ZuVB_0APg", "fussball-videos");
+  loadColumn("UCeuKtCc2Q0ySUxYX8yRZhcg", "media-videos");
 }
 
 /* ================= PLAYER ================= */
