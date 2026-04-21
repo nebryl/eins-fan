@@ -231,7 +231,7 @@ body {
 
   <div class="container">
 
-    <div class="row">
+    <div class="row" id="continue-row">
       <h2>Wieder rein da!</h2>
       <div class="row-scroll" id="continue-videos"></div>
     </div>
@@ -601,11 +601,20 @@ function getAllProgressEntries() {
 function renderContinueWatching() {
 
   const box = document.getElementById("continue-videos");
-  if (!box) return;
+  const row = document.getElementById("continue-row");
+
+  if (!box || !row) return;
 
   box.innerHTML = "";
 
   const items = getAllProgressEntries();
+
+  if (!items.length) {
+    row.style.display = "none";
+    return;
+  }
+
+  row.style.display = "block";
 
   items.forEach(entry => {
 
