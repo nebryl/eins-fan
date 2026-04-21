@@ -22,12 +22,10 @@ body {
   color: var(--text);
 }
 
-/* 📦 CONTAINER */
 .container {
   padding: 20px;
 }
 
-/* 🖼️ LOGO */
 .logo {
   width: 80px;
   margin-bottom: 20px;
@@ -37,7 +35,7 @@ body {
   width: 60px;
 }
 
-/* 🎬 ROW */
+/* ROW */
 .row {
   margin-bottom: 30px;
 }
@@ -46,7 +44,7 @@ body {
   margin-bottom: 10px;
 }
 
-/* 📺 SCROLL */
+/* SCROLL */
 .row-scroll {
   display: flex;
   gap: 10px;
@@ -56,7 +54,7 @@ body {
   display: none;
 }
 
-/* 🎬 VIDEO CARD */
+/* CARD */
 .video {
   min-width: 200px;
   background: #2a2926;
@@ -75,12 +73,10 @@ body {
   width: 100%;
 }
 
+/* HOVER VIDEO */
 .hover-preview {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   display: none;
   z-index: 5;
   border-radius: 10px;
@@ -99,30 +95,27 @@ body {
   font-size: 12px;
 }
 
-/* 🔴 MINI PROGRESS */
+/* 🔴 PROGRESS OBEN */
 .mini-progress {
   position: absolute;
   top: 0;
   left: 0;
-  height: 3px;
+  height: 4px;
   width: 0%;
-  background: red;
+  background: linear-gradient(90deg, red, #ff4444);
   z-index: 6;
 }
 
-/* 🌑 OVERLAY */
+/* OVERLAY */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0,0,0,0.7);
   display: none;
   z-index: 99998;
 }
 
-/* 🎬 PLAYER */
+/* PLAYER */
 .preview {
   position: fixed;
   display: none;
@@ -142,7 +135,7 @@ body {
   height: 100%;
 }
 
-/* 🎮 TWITCH */
+/* TWITCH */
 .twitch-btn {
   position: fixed;
   bottom: 15px;
@@ -188,10 +181,8 @@ body {
 
 </div>
 
-<!-- 🌑 OVERLAY -->
 <div class="overlay" id="overlay"></div>
 
-<!-- 🎬 PLAYER -->
 <div class="preview">
   <div id="player"></div>
 </div>
@@ -210,25 +201,25 @@ const channels = {
 let player;
 let currentVideo = null;
 
-/* 🔧 VIDEO ID FIX */
+/* ID FIX */
 function getVideoId(url) {
   if (url.includes("shorts")) {
     return url.split("/shorts/")[1].split("?")[0];
-  } else {
-    return url.split("v=")[1]?.split("&")[0];
   }
+  return url.split("v=")[1]?.split("&")[0];
 }
 
-/* 💾 STORAGE */
-function saveProgress(id, time) {
-  localStorage.setItem("vid_" + id, time);
+/* STORAGE (FIXED) */
+function saveProgress(id, time, duration) {
+  localStorage.setItem("vid_" + id, JSON.stringify({ time, duration }));
 }
 
 function getProgress(id) {
-  return localStorage.getItem("vid_" + id) || 0;
+  const data = localStorage.getItem("vid_" + id);
+  return data ? JSON.parse(data) : null;
 }
 
-/* 🎬 PLAYER OPEN */
+/* PLAYER */
 function openPlayer(id) {
   currentVideo = id;
 
@@ -247,14 +238,14 @@ function openPlayer(id) {
   }
 }
 
-/* 📊 PROGRESS */
+/* PROGRESS */
 function updateProgress() {
   if (!player || !currentVideo) return;
 
   const current = player.getCurrentTime();
   const duration = player.getDuration();
 
-  saveProgress(currentVideo, current);
+  saveProgress(currentVideo, current, duration);
 
   const percent = (current / duration) * 100;
 
@@ -262,17 +253,16 @@ function updateProgress() {
   if (bar) bar.style.width = percent + "%";
 }
 
-/* ❌ CLOSE */
+/* CLOSE */
 document.getElementById("overlay").addEventListener("click", closePlayer);
 
 function closePlayer() {
   document.querySelector(".preview").style.display = "none";
   document.getElementById("overlay").style.display = "none";
-
   if (player) player.stopVideo();
 }
 
-/* 🎬 CREATE */
+/* CREATE */
 function createVideo(item) {
   const id = getVideoId(item.link);
   const thumb = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
@@ -288,38 +278,38 @@ function createVideo(item) {
     <div class="mini-progress"></div>
   `;
 
+  /* RESTORE PROGRESS */
+  const saved = getProgress(id);
+  if (saved && saved.duration > 0) {
+    const percent = (saved.time / saved.duration) * 100;
+    div.querySelector(".mini-progress").style.width = percent + "%";
+  }
+
+  /* HOVER */
   const preview = div.querySelector(".hover-preview");
+  let timer;
 
-  let hoverTimer;
-
-  /* 🖱️ HOVER START */
   div.addEventListener("mouseenter", () => {
-    hoverTimer = setTimeout(() => {
+    timer = setTimeout(() => {
       preview.style.display = "block";
       preview.innerHTML = `
-        <iframe
-          src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}"
-          frameborder="0"
-          allow="autoplay">
-        </iframe>
+        <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}"></iframe>
       `;
-    }, 400); // Delay für nicer UX
+    }, 400);
   });
 
-  /* 🖱️ HOVER END */
   div.addEventListener("mouseleave", () => {
-    clearTimeout(hoverTimer);
+    clearTimeout(timer);
     preview.style.display = "none";
     preview.innerHTML = "";
   });
 
-  /* ▶️ CLICK (dein normales Verhalten bleibt) */
   div.addEventListener("click", () => openPlayer(id));
 
   return div;
 }
 
-/* 📥 LOAD */
+/* LOAD */
 async function getFeed(id) {
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
   const res = await fetch(
@@ -343,9 +333,13 @@ function loadAll() {
 
 loadAll();
 
-/* 🎮 TWITCH */
+/* TWITCH */
 function openTwitch() {
   window.open("https://www.twitch.tv/eintrachtspandau", "_blank");
+}
+
+function reloadDashboard() {
+  loadAll();
 }
 
 </script>
