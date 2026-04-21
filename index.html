@@ -87,7 +87,7 @@ body {
   font-size: 12px;
 }
 
-/* 🔥 PROGRESS BAR */
+/* PROGRESS */
 .mini-progress {
   position: absolute;
   top: 0;
@@ -267,13 +267,37 @@ window.onload = () => {
   if (isLoggedIn()) startApp();
 };
 
+/* ================= PROGRESS STORAGE ================= */
+
+function saveProgress(id, time, duration) {
+  localStorage.setItem("vid_" + id, JSON.stringify({
+    time,
+    duration,
+    ts: Date.now()
+  }));
+}
+
+function getProgress(id) {
+  const data = localStorage.getItem("vid_" + id);
+  if (!data) return null;
+
+  const parsed = JSON.parse(data);
+
+  // 30 Tage Cleanup
+  if (Date.now() - (parsed.ts || 0) > 30 * 24 * 60 * 60 * 1000) {
+    localStorage.removeItem("vid_" + id);
+    return null;
+  }
+
+  return parsed;
+}
+
 /* ================= PLAYER ================= */
 
 let player;
 let currentVideo = null;
 let progressInterval = null;
 
-/* VIDEO ID */
 function getVideoId(url) {
   if (!url) return null;
 
@@ -300,8 +324,6 @@ function createVideo(item) {
 
   const div = document.createElement("div");
   div.className = "video";
-
-  // 🔥 WICHTIG FIX
   div.setAttribute("data-id", id);
 
   div.innerHTML = `
@@ -309,6 +331,18 @@ function createVideo(item) {
     <span>${item.title}</span>
     <div class="mini-progress"></div>
   `;
+
+  // 🔥 RESTORE PROGRESS ON LOAD
+  const saved = getProgress(id);
+
+  if (saved && saved.duration > 0) {
+    const percent = (saved.time / saved.duration) * 100;
+
+    setTimeout(() => {
+      const bar = div.querySelector(".mini-progress");
+      if (bar) bar.style.width = percent + "%";
+    }, 0);
+  }
 
   div.onclick = () => openPlayer(id);
 
@@ -348,13 +382,19 @@ function openPlayer(id) {
   document.getElementById("overlay").style.display = "block";
   document.getElementById("playerView").style.display = "block";
 
+  const saved = getProgress(id);
+  const startTime = saved?.time || 0;
+
   if (!player) {
 
     player = new YT.Player("player", {
       videoId: id,
       playerVars: { autoplay: 1 },
       events: {
-        onReady: () => startProgress()
+        onReady: () => {
+          player.seekTo(startTime, true);
+          startProgress();
+        }
       }
     });
 
@@ -378,6 +418,8 @@ function startProgress() {
 
     if (!duration) return;
 
+    saveProgress(currentVideo, current, duration);
+
     const percent = (current / duration) * 100;
 
     const card = document.querySelector(`.video[data-id="${currentVideo}"]`);
@@ -385,7 +427,7 @@ function startProgress() {
 
     if (bar) bar.style.width = percent + "%";
 
-  }, 400);
+  }, 500);
 }
 
 /* CLOSE */
@@ -395,7 +437,7 @@ function closePlayer() {
   document.getElementById("playerView").style.display = "none";
 
   if (player) {
-    try { player.stopVideo(); } catch(e) {}
+    try { player.pauseVideo(); } catch(e) {}
   }
 
   currentVideo = null;
