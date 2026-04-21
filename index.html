@@ -417,7 +417,7 @@ function startProgress() {
 }
 
 /* CLOSE PLAYER (STABIL) */
-document.getElementById("overlay").onclick = closePlayer;
+document.getElementById("overlay").addEventListener("click", closePlayer);
 
 function closePlayer() {
 
@@ -425,9 +425,11 @@ function closePlayer() {
   document.getElementById("playerView").style.display = "none";
 
   if (player) {
-    player.stopVideo();
-    player.seekTo(0);
-    player.pauseVideo();
+    try {
+      player.pauseVideo();
+      player.stopVideo();
+      player.seekTo(0, true);
+    } catch (e) {}
   }
 
   currentVideo = null;
@@ -441,6 +443,12 @@ function closePlayer() {
     b.style.width = "0%";
   });
 }
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    closePlayer();
+  }
+});
 
 </script>
 
