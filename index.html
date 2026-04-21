@@ -32,8 +32,8 @@ body {
 }
 
 .logo img {
-  max-width: 70px;
-  max-height: 70px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
 }
 
@@ -123,8 +123,8 @@ body {
 <div class="grid">
 
   <!-- 🖼️ LOGO -->
-  <div class="logo">
-    <img src="./assets/logo.png" alt="Logo">
+  <div class="logo" onclick="reloadDashboard()">
+    <img src="./pic.jpg" alt="Logo">
   </div>
 
   <!-- 📊 KANÄLE (MEDIA GANZ RECHTS) -->
@@ -178,6 +178,17 @@ function isShort(item) {
 
 function getVideoId(url) {
   return url.split("v=")[1]?.split("&")[0] || url.split("/shorts/")[1];
+}
+
+function reloadDashboard() {
+  loadAll(); // 🔄 nur Daten neu laden (empfohlen)
+
+  // optional: visuelles Feedback
+  const logo = document.querySelector(".logo");
+  logo.style.transform = "scale(0.95)";
+  setTimeout(() => {
+    logo.style.transform = "scale(1)";
+  }, 150);
 }
 
 /* 🎬 VIDEO */
