@@ -134,20 +134,31 @@ body {
 /* TOPBAR */
 .topbar {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  position: relative;
   padding: 10px 20px;
 }
 
-.logo img {
-  width: 60px;
-  cursor: pointer;
+/* links / rechts fix positioniert */
+.logo {
+  position: absolute;
+  left: 20px;
 }
 
 .logout {
+  position: absolute;
+  right: 20px;
   cursor: pointer;
   background: #333;
   padding: 6px 10px;
   border-radius: 6px;
+}
+
+/* welcome exakt zentriert */
+#welcome {
+  text-align: center;
+  font-size: 16px;
 }
 
 </style>
