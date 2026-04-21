@@ -1,161 +1,132 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>YouTube Dashboard</title>
+<meta charset="UTF-8">
+<title>YouTube Dashboard</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f0f0f;
-      color: white;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f0f0f;
+  color: white;
+}
 
-    /* 📊 4 Spalten */
-    .container {
-      display: flex;
-      gap: 12px;
-      padding: 12px;
-    }
+/* 🧱 GRID LAYOUT */
+.grid {
+  display: grid;
+  grid-template-columns: 140px repeat(4, 1fr);
+  grid-template-rows: 80px repeat(2, 1fr);
+  height: 100vh;
+}
 
-    /* 🧱 jede Spalte = kleine Kachel */
-    .column {
-      flex: 1;
-      background: #1b1b1b;
-      border-radius: 12px;
-      padding: 10px;
-      height: 95vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
+/* 🖼️ LOGO */
+.logo {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1b1b1b;
+  border-right: 1px solid #333;
+}
 
-    .channel-title {
-      text-align: center;
-      font-size: 16px;
-      padding: 8px;
-      background: #222;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
+.logo img {
+  max-width: 70px;
+  max-height: 70px;
+  object-fit: contain;
+}
 
-    /* 🔲 INNER LAYOUT (oben Videos, unten Shorts) */
-    .section {
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      background: #141414;
-      border-radius: 10px;
-      padding: 8px;
-    }
+/* 📊 Kanal-Header */
+.col-header {
+  background: #1b1b1b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-bottom: 1px solid #333;
+}
 
-    .section h3 {
-      margin: 0 0 8px 0;
-      font-size: 13px;
-      color: #aaa;
-      border-bottom: 1px solid #333;
-      padding-bottom: 4px;
-    }
+/* 📌 Zeilen-Header */
+.row-header {
+  background: #1b1b1b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-right: 1px solid #333;
+}
 
-    .video {
-      display: flex;
-      gap: 8px;
-      background: #222;
-      padding: 6px;
-      margin: 6px 0;
-      border-radius: 8px;
-      align-items: center;
-      font-size: 12px;
-    }
+/* 📦 Zellen */
+.cell {
+  overflow-y: auto;
+  background: #141414;
+  padding: 6px;
+}
 
-    .video img {
-      width: 90px;
-      border-radius: 6px;
-    }
+/* 🎬 Video Card */
+.video {
+  display: flex;
+  gap: 8px;
+  background: #222;
+  margin: 6px 0;
+  padding: 6px;
+  border-radius: 8px;
+  align-items: center;
+  font-size: 12px;
+}
 
-    .video a {
-      color: white;
-      text-decoration: none;
-      flex: 1;
-    }
+.video img {
+  width: 85px;
+  border-radius: 6px;
+}
 
-    /* Scrollbar clean */
-    .section::-webkit-scrollbar {
-      width: 5px;
-    }
+.video a {
+  color: white;
+  text-decoration: none;
+}
 
-    .section::-webkit-scrollbar-thumb {
-      background: #333;
-      border-radius: 10px;
-    }
+/* Scrollbar */
+.cell::-webkit-scrollbar {
+  width: 5px;
+}
+.cell::-webkit-scrollbar-thumb {
+  background: #333;
+}
 
-  </style>
+</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="grid">
 
-  <!-- SPANDAU -->
-  <div class="column">
-    <div class="channel-title">Eintracht Spandau</div>
-
-    <div class="section">
-      <h3>🎬 Videos</h3>
-      <div id="spandau-videos"></div>
-    </div>
-
-    <div class="section">
-      <h3>🔥 Shorts</h3>
-      <div id="spandau-shorts"></div>
-    </div>
+  <!-- 🖼️ LOGO -->
+  <div class="logo">
+    <img src="./assets/logo.png" alt="Logo">
   </div>
 
-  <!-- LOL -->
-  <div class="column">
-    <div class="channel-title">LoL</div>
+  <!-- 📊 KANÄLE -->
+  <div class="col-header">Spandau</div>
+  <div class="col-header">Media</div>
+  <div class="col-header">LoL</div>
+  <div class="col-header">Fußball</div>
 
-    <div class="section">
-      <h3>🎬 Videos</h3>
-      <div id="lol-videos"></div>
-    </div>
+  <!-- 🧾 ZEILE: VIDEOS -->
+  <div class="row-header">Videos</div>
 
-    <div class="section">
-      <h3>🔥 Shorts</h3>
-      <div id="lol-shorts"></div>
-    </div>
-  </div>
+  <div class="cell" id="spandau-videos"></div>
+  <div class="cell" id="media-videos"></div>
+  <div class="cell" id="lol-videos"></div>
+  <div class="cell" id="fussball-videos"></div>
 
-  <!-- FUSSBALL -->
-  <div class="column">
-    <div class="channel-title">Fußball</div>
+  <!-- 🧾 ZEILE: SHORTS -->
+  <div class="row-header">Shorts</div>
 
-    <div class="section">
-      <h3>🎬 Videos</h3>
-      <div id="fussball-videos"></div>
-    </div>
-
-    <div class="section">
-      <h3>🔥 Shorts</h3>
-      <div id="fussball-shorts"></div>
-    </div>
-  </div>
-
-  <!-- MEDIA -->
-  <div class="column">
-    <div class="channel-title">Media</div>
-
-    <div class="section">
-      <h3>🎬 Videos</h3>
-      <div id="media-videos"></div>
-    </div>
-
-    <div class="section">
-      <h3>🔥 Shorts</h3>
-      <div id="media-shorts"></div>
-    </div>
-  </div>
+  <div class="cell" id="spandau-shorts"></div>
+  <div class="cell" id="media-shorts"></div>
+  <div class="cell" id="lol-shorts"></div>
+  <div class="cell" id="fussball-shorts"></div>
 
 </div>
 
@@ -219,15 +190,14 @@ async function loadColumn(prefix, channelId) {
 }
 
 function loadAll() {
-  loadColumn("spandau", channels.spandau);
-  loadColumn("lol", channels.lol);
-  loadColumn("fussball", channels.fussball);
-  loadColumn("media", channels.media);
+  Object.entries(channels).forEach(([key, id]) => {
+    loadColumn(key, id);
+  });
 }
 
 loadAll();
 
-// 🔄 Auto Refresh 5 Minuten
+// 🔄 Auto Refresh alle 5 Minuten
 setInterval(loadAll, 5 * 60 * 1000);
 
 </script>
