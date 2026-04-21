@@ -538,10 +538,12 @@ function startProgress() {
   
     const percent = (current / duration) * 100;
   
-    const card = document.querySelector(`.video[data-id="${currentVideo}"]`);
-    const bar = card?.querySelector(".mini-progress");
-  
-    if (bar) bar.style.width = percent + "%";
+    const cards = document.querySelectorAll(`.video[data-id="${currentVideo}"]`);
+    
+    cards.forEach(card => {
+      const bar = card.querySelector(".mini-progress");
+      if (bar) bar.style.width = percent + "%";
+    });
   
   }, 500);
 }
