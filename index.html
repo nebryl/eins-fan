@@ -5,12 +5,6 @@
 <title>Eins Dashboard</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
 
 :root {
   --bg: #0a0a0f;
@@ -19,13 +13,19 @@ body {
 
   --text: #ffffff;
 
-  /* 🎯 Spandau Accent */
-  --accent: #f5c542;  /* kräftiges Gold/Gelb */
+  --accent: #f5c542;
   --accent-soft: rgba(245, 197, 66, 0.25);
 
   --border: #2a2a36;
 }
-  
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
 /* 🧱 GRID */
 .grid {
   display: grid;
@@ -41,40 +41,43 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1b1b1b;
-  border-right: 1px solid #333;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
 .logo img {
   width: 60px;
   height: 60px;
   object-fit: contain;
+  filter: drop-shadow(0 0 10px var(--accent-soft));
 }
 
 /* 📊 HEADER */
 .col-header {
-  background: #1b1b1b;
+  background: var(--panel);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border);
 }
 
 /* 📌 ROW HEADER */
 .row-header {
-  background: #1b1b1b;
+  background: var(--panel);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  border-right: 1px solid #333;
+  border-right: 1px solid var(--border);
 }
 
 /* 📦 CELLS */
 .cell {
   overflow-y: auto;
-  background: #141414;
+  background: var(--panel2);
   padding: 6px;
 }
 
@@ -82,13 +85,20 @@ body {
 .video {
   display: flex;
   gap: 8px;
-  background: #222;
+  background: #1f1f2a;
   margin: 6px 0;
   padding: 6px;
   border-radius: 8px;
   align-items: center;
   font-size: 12px;
   cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.video:hover {
+  outline: 1px solid var(--accent);
+  box-shadow: 0 0 10px var(--accent-soft);
+  transform: scale(1.02);
 }
 
 .video img {
@@ -97,7 +107,7 @@ body {
 }
 
 .video span {
-  color: white;
+  color: var(--text);
 }
 
 /* scrollbar */
@@ -141,7 +151,7 @@ body {
     <img src="./pic.jpg" alt="Logo">
   </div>
 
-  <!-- 📊 KANÄLE (MEDIA GANZ RECHTS) -->
+  <!-- 📊 KANÄLE -->
   <div class="col-header">Spandau</div>
   <div class="col-header">LoL</div>
   <div class="col-header">Fußball</div>
@@ -194,15 +204,13 @@ function getVideoId(url) {
   return url.split("v=")[1]?.split("&")[0] || url.split("/shorts/")[1];
 }
 
+/* 🔄 Reload */
 function reloadDashboard() {
-  loadAll(); // 🔄 nur Daten neu laden (empfohlen)
+  loadAll();
 
-  // optional: visuelles Feedback
   const logo = document.querySelector(".logo");
   logo.style.transform = "scale(0.95)";
-  setTimeout(() => {
-    logo.style.transform = "scale(1)";
-  }, 150);
+  setTimeout(() => logo.style.transform = "scale(1)", 150);
 }
 
 /* 🎬 VIDEO */
@@ -271,7 +279,11 @@ setInterval(loadAll, 5 * 60 * 1000);
 document.addEventListener("click", (e) => {
   const preview = document.getElementById("preview");
 
-  if (preview.style.display === "block" && !preview.contains(e.target) && !e.target.closest(".video")) {
+  if (
+    preview.style.display === "block" &&
+    !preview.contains(e.target) &&
+    !e.target.closest(".video")
+  ) {
     preview.style.display = "none";
     preview.innerHTML = "";
   }
