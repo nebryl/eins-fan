@@ -91,7 +91,7 @@ body {
   font-size: 12px;
 }
 
-/* 🔴 NETFLIX PROGRESS BAR */
+/* 🔴 NETFLIX PROGRESS BAR (THUMBNAIL) */
 .mini-progress {
   position: absolute;
   top: 0;
@@ -123,10 +123,6 @@ body {
   border-radius: 12px;
   overflow: hidden;
   z-index: 10000;
-}
-
-.preview iframe {
-  pointer-events: none;
 }
 
 #player {
@@ -258,7 +254,7 @@ function isLoggedIn() {
   return localStorage.getItem("loggedIn") === "true";
 }
 
-/* ================= APP START ================= */
+/* ================= APP ================= */
 
 function startApp() {
 
@@ -309,7 +305,7 @@ function createVideo(item) {
   const div = document.createElement("div");
   div.className = "video";
 
-  /* 🔥 WICHTIG: FIX FÜR PROGRESS BAR */
+  /* WICHTIG FÜR PROGRESS */
   div.setAttribute("data-id", id);
 
   div.innerHTML = `
@@ -360,7 +356,11 @@ function openPlayer(id) {
 
     player = new YT.Player("player", {
       videoId: id,
-      playerVars: { autoplay: 1 },
+      playerVars: {
+        autoplay: 1,
+        controls: 1,   // 🔥 WICHTIG: Controls wieder sichtbar
+        rel: 0
+      },
       events: {
         onReady: () => startProgress()
       }
@@ -373,7 +373,7 @@ function openPlayer(id) {
   startProgress();
 }
 
-/* PROGRESS BAR */
+/* PROGRESS */
 function startProgress() {
 
   clearInterval(progressInterval);
@@ -396,7 +396,6 @@ function startProgress() {
 
     const percent = (current / duration) * 100;
 
-    /* 🔥 SAFE SELECTOR FIX */
     const videoCard = document.querySelector(`.video[data-id="${currentVideo}"]`);
     const bar = videoCard ? videoCard.querySelector(".mini-progress") : null;
 
@@ -405,7 +404,7 @@ function startProgress() {
   }, 250);
 }
 
-/* CLOSE PLAYER */
+/* CLOSE */
 function closePlayer() {
 
   document.getElementById("overlay").style.display = "none";
