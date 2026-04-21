@@ -440,21 +440,35 @@ function openPlayer(id) {
 
   if (!player) {
 
-    player = new YT.Player("player", {
-      videoId: id,
-      playerVars: { autoplay: 1 },
-      events: {
-        onReady: () => {
-          player.seekTo(startTime, true);
-          playerReady = true;
+  player = new YT.Player("player", {
+    videoId: id,
+    playerVars: { autoplay: 1 },
+    events: {
+      onReady: (e) => {
+        player.seekTo(startTime, true);
+        playerReady = true;
+      
+        setTimeout(() => {
           startProgress();
-        }
-      }
-    });
+        }, 300);
+      },
+      onStateChange: onPlayerStateChange
+    }
+  });
 
   } else {
     player.loadVideoById(id);
     startProgress();
+  }
+}
+
+function onPlayerStateChange(e) {
+  if (e.data === YT.PlayerState.PAUSED) {
+    saveCurrent();
+  }
+
+  if (e.data === YT.PlayerState.PLAYING) {
+    playerReady = true;
   }
 }
 
@@ -548,12 +562,13 @@ function renderContinueWatching() {
 
 /* save Current Progress*/
 function saveCurrent() {
-  if (!player || !currentVideo) return;
+  if (!player || !currentVideo || !playerReady) return;
 
   const current = player.getCurrentTime();
   const duration = player.getDuration();
 
-  if (!duration) return;
+  // 🔥 verhindert "0 Sekunden Bug"
+  if (!duration || current < 1) return;
 
   saveProgress(currentVideo, current, duration);
 }
