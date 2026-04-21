@@ -8,10 +8,24 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #0f0f0f;
-  color: white;
+  background: var(--bg);
+  color: var(--text);
 }
 
+:root {
+  --bg: #0a0a0f;
+  --panel: #14141c;
+  --panel2: #1c1c28;
+
+  --text: #ffffff;
+
+  /* 🎯 Spandau Accent */
+  --accent: #f5c542;  /* kräftiges Gold/Gelb */
+  --accent-soft: rgba(245, 197, 66, 0.25);
+
+  --border: #2a2a36;
+}
+  
 /* 🧱 GRID */
 .grid {
   display: grid;
