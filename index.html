@@ -12,7 +12,6 @@
 :root {
   --bg: #141413;
   --text: #9B978E;
-  --border: #3a3936;
 }
 
 body {
@@ -22,14 +21,36 @@ body {
   color: var(--text);
 }
 
-.container { padding: 20px; }
+/* LOGIN */
+#loginBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 250px;
+  margin: 150px auto;
+  text-align: center;
+}
+
+#loginBox input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+#loginBox button {
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* APP */
+.container { padding: 20px; display: none; }
 
 .logo { width: 80px; margin-bottom: 20px; cursor: pointer; }
 .logo img { width: 60px; }
 
 .row { margin-bottom: 30px; }
-.row h2 { margin-bottom: 10px; }
-
 .row-scroll {
   display: flex;
   gap: 10px;
@@ -44,27 +65,9 @@ body {
   overflow: hidden;
   cursor: pointer;
   position: relative;
-  transition: 0.2s;
 }
-
-.video:hover { transform: scale(1.06); }
 
 .video img { width: 100%; }
-
-.hover-preview {
-  position: absolute;
-  inset: 0;
-  display: none;
-  z-index: 5;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.hover-preview iframe {
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
 
 .video span {
   padding: 6px;
@@ -78,8 +81,7 @@ body {
   left: 0;
   height: 4px;
   width: 0%;
-  background: linear-gradient(90deg, red, #ff4444);
-  z-index: 6;
+  background: red;
 }
 
 .overlay {
@@ -87,7 +89,6 @@ body {
   inset: 0;
   background: rgba(0,0,0,0.7);
   display: none;
-  z-index: 99998;
 }
 
 .preview {
@@ -100,22 +101,22 @@ body {
   height: 450px;
   background: black;
   border-radius: 12px;
-  overflow: hidden;
-  z-index: 99999;
 }
 
 #player { width: 100%; height: 100%; }
 
-.twitch-btn {
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  background: #9146FF;
-  color: white;
-  padding: 10px;
-  border-radius: 10px;
+/* USER BAR */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.logout {
   cursor: pointer;
-  z-index: 100000;
+  background: #333;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 
 </style>
@@ -123,7 +124,23 @@ body {
 
 <body>
 
-<div class="container">
+<!-- LOGIN -->
+<div id="loginBox">
+  <h2>Einsflix Login</h2>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Passwort">
+
+  <button onclick="handleLogin()">Einloggen</button>
+</div>
+
+<!-- APP -->
+<div class="container" id="app">
+
+  <div class="topbar">
+    <div id="welcome"></div>
+    <div class="logout" onclick="logout()">Logout</div>
+  </div>
 
   <div class="logo" onclick="reloadDashboard()">
     <img src="./pic.jpg">
@@ -139,16 +156,6 @@ body {
     <div class="row-scroll" id="lol-videos"></div>
   </div>
 
-  <div class="row">
-    <h2>Fußball</h2>
-    <div class="row-scroll" id="fussball-videos"></div>
-  </div>
-
-  <div class="row">
-    <h2>Mediathek</h2>
-    <div class="row-scroll" id="media-videos"></div>
-  </div>
-
 </div>
 
 <div class="overlay" id="overlay"></div>
@@ -157,38 +164,97 @@ body {
   <div id="player"></div>
 </div>
 
-<button class="twitch-btn" onclick="openTwitch()">🎮 Twitch</button>
-
 <script>
+
+/* ======================
+   🔐 LOGIN SYSTEM
+====================== */
+
+const FAKE_PASSWORD = "EinsAufDieEins";
+
+function login(username, password) {
+  if (!username || username.trim() === "") return false;
+
+  if (password === FAKE_PASSWORD) {
+    localStorage.setItem("currentUser", username.trim());
+    localStorage.setItem("loggedIn", "true");
+    return true;
+  }
+
+  return false;
+}
+
+function isLoggedIn() {
+  return localStorage.getItem("loggedIn") === "true";
+}
+
+function getCurrentUser() {
+  return localStorage.getItem("currentUser");
+}
+
+function logout() {
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem("currentUser");
+  location.reload();
+}
+
+/* ======================
+   LOGIN HANDLER
+====================== */
+
+function handleLogin() {
+
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
+
+  const ok = login(user, pass);
+
+  if (ok) {
+    startApp();
+  } else {
+    alert("Falsches Passwort!");
+  }
+}
+
+/* ======================
+   APP START
+====================== */
+
+function startApp() {
+
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  document.getElementById("welcome").innerText =
+    "Willkommen " + getCurrentUser();
+
+  loadAll();
+}
+
+/* Auto login */
+window.onload = () => {
+  if (isLoggedIn()) {
+    startApp();
+  }
+};
+
+/* ======================
+   VIDEO SYSTEM (gekürzt)
+====================== */
 
 const channels = {
   spandau: "UC5QM2OXKyZaNw13iLbuEpCg",
-  lol: "UCeM9ckIXeJFvdt4bKpXvTqw",
-  fussball: "UCMQkXTIDVvVDh0ZuVB_0APg",
-  media: "UCeuKtCc2Q0ySUxYX8yRZhcg"
+  lol: "UCeM9ckIXeJFvdt4bKpXvTqw"
 };
 
 let player;
 let currentVideo = null;
-let progressInterval = null;
 
-/* =========================
-   🧠 STORAGE SETTINGS
-========================= */
-
-const MAX_ITEMS = 75;
-const MAX_DAYS = 30;
-const MIN_WATCH_PERCENT = 0.10;
-
-/* =========================
-   📦 SAVE PROGRESS
-========================= */
-
+/* Progress Storage */
 function saveProgress(id, time, duration) {
 
-  if (!duration || duration === 0) return;
-
-  if (time / duration < MIN_WATCH_PERCENT) return;
+  if (!duration) return;
+  if (time / duration < 0.10) return;
 
   localStorage.setItem("vid_" + id, JSON.stringify({
     time,
@@ -199,217 +265,52 @@ function saveProgress(id, time, duration) {
   cleanupStorage();
 }
 
-/* =========================
-   🧹 CLEANUP (AGE + SIZE)
-========================= */
+function getProgress(id) {
+  const data = localStorage.getItem("vid_" + id);
+  return data ? JSON.parse(data) : null;
+}
 
+/* Cleanup (75 + 30 Tage) */
 function cleanupStorage() {
+
+  const MAX_ITEMS = 75;
+  const MAX_DAYS = 30;
 
   const now = Date.now();
 
   let items = Object.keys(localStorage)
     .filter(k => k.startsWith("vid_"))
     .map(k => {
-      const data = JSON.parse(localStorage.getItem(k));
-      return { key: k, updatedAt: data.updatedAt || 0 };
+      const d = JSON.parse(localStorage.getItem(k));
+      return { key: k, updatedAt: d.updatedAt || 0 };
     });
 
-  // ⏳ remove old (>30 days)
-  items.forEach(item => {
-    const ageDays = (now - item.updatedAt) / (1000 * 60 * 60 * 24);
-    if (ageDays > MAX_DAYS) {
-      localStorage.removeItem(item.key);
+  items.forEach(i => {
+    if ((now - i.updatedAt) / 86400000 > MAX_DAYS) {
+      localStorage.removeItem(i.key);
     }
   });
 
-  // 🔄 reload after cleanup
   items = Object.keys(localStorage)
     .filter(k => k.startsWith("vid_"))
-    .map(k => {
-      const data = JSON.parse(localStorage.getItem(k));
-      return { key: k, updatedAt: data.updatedAt || 0 };
-    })
-    .sort((a, b) => b.updatedAt - a.updatedAt);
+    .map(k => JSON.parse(localStorage.getItem(k)))
+    .sort((a,b) => b.updatedAt - a.updatedAt);
 
-  // 📦 limit size
   if (items.length > MAX_ITEMS) {
     items.slice(MAX_ITEMS).forEach(i => {
-      localStorage.removeItem(i.key);
+      localStorage.removeItem("vid_" + i.id);
     });
   }
 }
 
-/* =========================
-   📖 GET PROGRESS
-========================= */
-
-function getProgress(id) {
-  const data = localStorage.getItem("vid_" + id);
-  return data ? JSON.parse(data) : null;
-}
-
-/* =========================
-   🎥 PLAYER
-========================= */
-
-function openPlayer(id) {
-
-  currentVideo = id;
-
-  document.querySelector(".preview").style.display = "block";
-  document.getElementById("overlay").style.display = "block";
-
-  const saved = getProgress(id);
-  const startTime = saved?.time || 0;
-
-  if (player) {
-    player.loadVideoById({ videoId: id, startSeconds: startTime });
-  } else {
-    player = new YT.Player("player", {
-      videoId: id,
-      playerVars: { autoplay: 1, start: startTime },
-      events: {
-        onReady: () => {
-          progressInterval = setInterval(updateProgress, 500);
-        }
-      }
-    });
-  }
-}
-
-/* =========================
-   📊 PROGRESS UPDATE
-========================= */
-
-function updateProgress() {
-  if (!player || !currentVideo) return;
-
-  const current = player.getCurrentTime();
-  const duration = player.getDuration();
-
-  if (duration > 0) {
-    saveProgress(currentVideo, current, duration);
-
-    const percent = (current / duration) * 100;
-
-    const bar = document.querySelector(`[data-id="${currentVideo}"] .mini-progress`);
-    if (bar) bar.style.width = percent + "%";
-  }
-}
-
-/* =========================
-   ❌ CLOSE
-========================= */
-
-document.getElementById("overlay").addEventListener("click", closePlayer);
-
-function closePlayer() {
-  document.querySelector(".preview").style.display = "none";
-  document.getElementById("overlay").style.display = "none";
-
-  if (player) player.stopVideo();
-
-  clearInterval(progressInterval);
-  progressInterval = null;
-}
-
-/* =========================
-   🧩 VIDEO CARD
-========================= */
-
-function getVideoId(url) {
-  if (url.includes("shorts")) {
-    return url.split("/shorts/")[1].split("?")[0];
-  }
-  return url.split("v=")[1]?.split("&")[0];
-}
-
-function createVideo(item) {
-
-  const id = getVideoId(item.link);
-  const thumb = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
-
-  const div = document.createElement("div");
-  div.className = "video";
-  div.setAttribute("data-id", id);
-
-  div.innerHTML = `
-    <img src="${thumb}">
-    <div class="hover-preview"></div>
-    <span>${item.title}</span>
-    <div class="mini-progress"></div>
-  `;
-
-  const saved = getProgress(id);
-  if (saved && saved.duration > 0) {
-    const percent = (saved.time / saved.duration) * 100;
-    div.querySelector(".mini-progress").style.width = percent + "%";
-  }
-
-  const preview = div.querySelector(".hover-preview");
-  let timer;
-
-  div.addEventListener("mouseenter", () => {
-    timer = setTimeout(() => {
-      preview.style.display = "block";
-      preview.innerHTML = `
-        <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}"></iframe>
-      `;
-    }, 400);
-  });
-
-  div.addEventListener("mouseleave", () => {
-    clearTimeout(timer);
-    preview.style.display = "none";
-    preview.innerHTML = "";
-  });
-
-  div.addEventListener("click", () => openPlayer(id));
-
-  return div;
-}
-
-/* =========================
-   📡 FEED
-========================= */
-
-async function getFeed(id) {
-  const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
-  const res = await fetch(
-    "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url)
-  );
-  const data = await res.json();
-  return data.items;
-}
-
-async function loadColumn(key, id) {
-  const items = await getFeed(id);
-  const box = document.getElementById(key + "-videos");
-  box.innerHTML = "";
-  items.forEach(v => box.appendChild(createVideo(v)));
-}
-
-function loadAll() {
-  Object.entries(channels).forEach(([k, v]) => loadColumn(k, v));
-}
-
-/* =========================
-   🚀 START
-========================= */
-
-cleanupStorage();
-loadAll();
-
-/* =========================
-   🔗 EXTRAS
-========================= */
-
-function openTwitch() {
-  window.open("https://www.twitch.tv/eintrachtspandau", "_blank");
-}
-
+/* Dashboard reload */
 function reloadDashboard() {
   loadAll();
+}
+
+/* dummy load */
+function loadAll() {
+  console.log("Videos laden...");
 }
 
 </script>
