@@ -169,9 +169,12 @@ body {
 <!-- LOGIN -->
 <div id="loginView">
   <h2>Einsflix Login</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Passwort">
-  <button onclick="login()">Login</button>
+
+  <form id="loginForm">
+    <input name="username" id="username" placeholder="Username" autocomplete="username">
+    <input name="password" id="password" type="password" placeholder="Passwort" autocomplete="current-password">
+    <button type="submit">Login</button>
+  </form>
 </div>
 
 <!-- APP -->
@@ -229,6 +232,11 @@ body {
 /* ================= LOGIN ================= */
 
 const PASSWORD = "EinsAufDieEins";
+
+document.getElementById("loginForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  login();
+});
 
 function login() {
 
