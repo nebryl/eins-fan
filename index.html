@@ -12,98 +12,80 @@
       color: white;
     }
 
-    /* 📊 3 Spalten Layout */
+    /* 📊 4 Spalten */
     .container {
       display: flex;
       gap: 12px;
       padding: 12px;
     }
 
+    /* 🧱 jede Spalte = kleine Kachel */
     .column {
       flex: 1;
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 10px;
+      height: 95vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 12px;
     }
 
     .channel-title {
       text-align: center;
-      font-size: 18px;
+      font-size: 16px;
       padding: 8px;
-      background: #1b1b1b;
+      background: #222;
       border-radius: 10px;
+      margin-bottom: 10px;
     }
 
-    /* 📦 KACHELN */
-    .card {
-      background: #1b1b1b;
-      border-radius: 12px;
-      padding: 10px;
-      height: 45vh;
+    /* 🔲 INNER LAYOUT (oben Videos, unten Shorts) */
+    .section {
+      flex: 1;
       overflow-y: auto;
-
-      /* 🔥 Scroll Snap */
-      scroll-snap-type: y mandatory;
-      scroll-behavior: smooth;
+      margin-bottom: 10px;
+      background: #141414;
+      border-radius: 10px;
+      padding: 8px;
     }
 
-    .card h3 {
+    .section h3 {
       margin: 0 0 8px 0;
-      font-size: 14px;
+      font-size: 13px;
       color: #aaa;
       border-bottom: 1px solid #333;
-      padding-bottom: 5px;
+      padding-bottom: 4px;
     }
 
-    /* 🎬 Video-Karte */
     .video {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       background: #222;
-      padding: 8px;
+      padding: 6px;
       margin: 6px 0;
-      border-radius: 10px;
+      border-radius: 8px;
       align-items: center;
-      cursor: pointer;
-
-      scroll-snap-align: start;
+      font-size: 12px;
     }
 
     .video img {
-      width: 120px;
+      width: 90px;
       border-radius: 6px;
     }
 
     .video a {
       color: white;
       text-decoration: none;
-      font-size: 13px;
       flex: 1;
     }
 
-    /* 🔥 Hover Preview */
-    .preview {
-      position: fixed;
-      display: none;
-      width: 360px;
-      height: 200px;
-      border-radius: 10px;
-      overflow: hidden;
-      z-index: 9999;
-      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    /* Scrollbar clean */
+    .section::-webkit-scrollbar {
+      width: 5px;
     }
 
-    .preview iframe {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* scrollbar styling */
-    .card::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .card::-webkit-scrollbar-thumb {
+    .section::-webkit-scrollbar-thumb {
       background: #333;
       border-radius: 10px;
     }
@@ -115,33 +97,18 @@
 
 <div class="container">
 
-  <!-- MEDIA -->
-  <div class="column">
-    <div class="channel-title">Media</div>
-  
-    <div class="card">
-      <h3>🔥 Shorts</h3>
-      <div id="media-shorts"></div>
-    </div>
-  
-    <div class="card">
-      <h3>🎬 Videos</h3>
-      <div id="media-videos"></div>
-    </div>
-  </div>
-  
   <!-- SPANDAU -->
   <div class="column">
     <div class="channel-title">Eintracht Spandau</div>
 
-    <div class="card">
-      <h3>🔥 Shorts</h3>
-      <div id="spandau-shorts"></div>
-    </div>
-
-    <div class="card">
+    <div class="section">
       <h3>🎬 Videos</h3>
       <div id="spandau-videos"></div>
+    </div>
+
+    <div class="section">
+      <h3>🔥 Shorts</h3>
+      <div id="spandau-shorts"></div>
     </div>
   </div>
 
@@ -149,14 +116,14 @@
   <div class="column">
     <div class="channel-title">LoL</div>
 
-    <div class="card">
-      <h3>🔥 Shorts</h3>
-      <div id="lol-shorts"></div>
-    </div>
-
-    <div class="card">
+    <div class="section">
       <h3>🎬 Videos</h3>
       <div id="lol-videos"></div>
+    </div>
+
+    <div class="section">
+      <h3>🔥 Shorts</h3>
+      <div id="lol-shorts"></div>
     </div>
   </div>
 
@@ -164,21 +131,33 @@
   <div class="column">
     <div class="channel-title">Fußball</div>
 
-    <div class="card">
+    <div class="section">
+      <h3>🎬 Videos</h3>
+      <div id="fussball-videos"></div>
+    </div>
+
+    <div class="section">
       <h3>🔥 Shorts</h3>
       <div id="fussball-shorts"></div>
     </div>
+  </div>
 
-    <div class="card">
+  <!-- MEDIA -->
+  <div class="column">
+    <div class="channel-title">Media</div>
+
+    <div class="section">
       <h3>🎬 Videos</h3>
-      <div id="fussball-videos"></div>
+      <div id="media-videos"></div>
+    </div>
+
+    <div class="section">
+      <h3>🔥 Shorts</h3>
+      <div id="media-shorts"></div>
     </div>
   </div>
 
 </div>
-
-<!-- Hover Preview -->
-<div class="preview" id="preview"></div>
 
 <script>
 
@@ -191,11 +170,7 @@ const channels = {
 
 async function getFeed(channelId) {
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-
-  const res = await fetch(
-    "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url)
-  );
-
+  const res = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url));
   const data = await res.json();
   return data.items || [];
 }
@@ -210,7 +185,7 @@ function getVideoId(url) {
 
 function createVideo(item) {
   const id = getVideoId(item.link);
-  const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  const thumb = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
 
   const div = document.createElement("div");
   div.className = "video";
@@ -220,39 +195,17 @@ function createVideo(item) {
     <a href="${item.link}" target="_blank">${item.title}</a>
   `;
 
-  // 🔥 Hover Preview
-  div.addEventListener("mouseenter", () => {
-    const preview = document.getElementById("preview");
-    preview.style.display = "block";
-    preview.innerHTML = `
-      <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1"
-        frameborder="0"
-        allow="autoplay; encrypted-media">
-      </iframe>
-    `;
-  });
-
-  div.addEventListener("mousemove", (e) => {
-    const preview = document.getElementById("preview");
-    preview.style.left = (e.pageX + 20) + "px";
-    preview.style.top = (e.pageY + 20) + "px";
-  });
-
-  div.addEventListener("mouseleave", () => {
-    document.getElementById("preview").style.display = "none";
-  });
-
   return div;
 }
 
 async function loadColumn(prefix, channelId) {
   const items = await getFeed(channelId);
 
-  const shortsBox = document.getElementById(prefix + "-shorts");
   const videosBox = document.getElementById(prefix + "-videos");
+  const shortsBox = document.getElementById(prefix + "-shorts");
 
-  shortsBox.innerHTML = "";
   videosBox.innerHTML = "";
+  shortsBox.innerHTML = "";
 
   items.forEach(item => {
     const el = createVideo(item);
@@ -266,16 +219,15 @@ async function loadColumn(prefix, channelId) {
 }
 
 function loadAll() {
-  loadColumn("media", channels.media);
   loadColumn("spandau", channels.spandau);
   loadColumn("lol", channels.lol);
   loadColumn("fussball", channels.fussball);
+  loadColumn("media", channels.media);
 }
 
-// 🚀 Start
 loadAll();
 
-// 🔄 Auto Refresh alle 5 Minuten
+// 🔄 Auto Refresh 5 Minuten
 setInterval(loadAll, 5 * 60 * 1000);
 
 </script>
