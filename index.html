@@ -87,41 +87,37 @@ body {
   font-size: 12px;
 }
 
+/* 🔥 PROGRESS BAR */
 .mini-progress {
   position: absolute;
   top: 0;
   left: 0;
   height: 4px;
   width: 0%;
-  background: linear-gradient(90deg, #ff0000, #ff4444);
+  background: linear-gradient(90deg, red, #ff4444);
 }
 
-/* ================= OVERLAY (ZWISCHEN SEITE UND PLAYER) ================= */
+/* OVERLAY */
 .overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.75);
   display: none;
-
-  /* 👇 wichtig: unter Player */
   z-index: 9998;
 }
 
-/* ================= PLAYER ================= */
+/* PLAYER */
 .preview {
   position: fixed;
   display: none;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-
   width: 800px;
   height: 450px;
   background: black;
   border-radius: 12px;
   overflow: hidden;
-
-  /* 👇 über Overlay */
   z-index: 9999;
 }
 
@@ -305,6 +301,9 @@ function createVideo(item) {
   const div = document.createElement("div");
   div.className = "video";
 
+  // 🔥 WICHTIG FIX
+  div.setAttribute("data-id", id);
+
   div.innerHTML = `
     <img src="https://img.youtube.com/vi/${id}/mqdefault.jpg">
     <span>${item.title}</span>
@@ -386,7 +385,7 @@ function startProgress() {
 
     if (bar) bar.style.width = percent + "%";
 
-  }, 500);
+  }, 400);
 }
 
 /* CLOSE */
@@ -404,12 +403,9 @@ function closePlayer() {
   progressInterval = null;
 }
 
-/* ================= EVENTS ================= */
-
-/* CLICK OUTSIDE (JETZT RICHTIG POSITIONIERT) */
+/* EVENTS */
 document.getElementById("overlay").addEventListener("pointerdown", closePlayer);
 
-/* ESC */
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closePlayer();
 });
