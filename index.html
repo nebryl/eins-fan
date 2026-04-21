@@ -178,7 +178,6 @@ function getVideoId(url) {
   return url.split("v=")[1]?.split("&")[0] || url.split("/shorts/")[1];
 }
 
-/* 🎬 VIDEO CARD + HOVER */
 function createVideo(item) {
   const id = getVideoId(item.link);
   const thumb = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
@@ -186,30 +185,36 @@ function createVideo(item) {
   const div = document.createElement("div");
   div.className = "video";
 
+  let opened = false;
+
   div.innerHTML = `
     <img src="${thumb}">
-    <a href="${item.link}" target="_blank">${item.title}</a>
+    <span style="color:white; font-size:12px;">${item.title}</span>
   `;
 
   const preview = document.getElementById("preview");
 
-  div.addEventListener("mouseenter", () => {
+  // 1. Klick → Preview öffnen
+  div.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    // 2. Klick → YouTube öffnen
+    if (opened) {
+      window.open(item.link, "_blank");
+      return;
+    }
+
+    opened = true;
+
     preview.style.display = "block";
     preview.innerHTML = `
-      <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1"
+      <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=0"
       frameborder="0"
       allow="autoplay; encrypted-media"></iframe>
     `;
-  });
 
-  div.addEventListener("mousemove", (e) => {
-    preview.style.left = (e.pageX + 20) + "px";
-    preview.style.top = (e.pageY + 20) + "px";
-  });
-
-  div.addEventListener("mouseleave", () => {
-    preview.style.display = "none";
-    preview.innerHTML = "";
+    // kleine visuelle Markierung
+    div.style.outline = "2px solid #ff0000";
   });
 
   return div;
