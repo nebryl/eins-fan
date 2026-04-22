@@ -293,34 +293,40 @@ body {
 }
 
 /* HERO SECTION */
+
+/* HERO SECTION */
 .hero-section {
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   margin-top: -20px;
-  margin-bottom: -90px;
+  margin-bottom: 0;
   padding: 0;
+  position: relative;
+  z-index: 1;
 }
+
 
 .hero-banner {
   width: 100%;
-  height: 400px;
+  height: 500px;
   background: #2a2926;
   position: relative;
   cursor: pointer;
   overflow: hidden;
+  z-index: 2;
 
-  /* 🧠 softer mask (weniger Abschneiden) */
+  /* Weiche Maske für sanftes Ausfaden */
   -webkit-mask-image: linear-gradient(
     to bottom,
-    rgba(0,0,0,1) 80%,
-    rgba(0,0,0,0.85) 92%,
+    rgba(0,0,0,1) 90%,
+    rgba(0,0,0,0.95) 97%,
     rgba(0,0,0,0) 100%
   );
 
   mask-image: linear-gradient(
     to bottom,
-    rgba(0,0,0,1) 80%,
-    rgba(0,0,0,0.85) 92%,
+    rgba(0,0,0,1) 90%,
+    rgba(0,0,0,0.95) 97%,
     rgba(0,0,0,0) 100%
   );
 
@@ -331,29 +337,27 @@ body {
   mask-size: 100% 100%;
 }
 
+
 .hero-banner img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top;
+  display: block;
 }
 
-/* softer, weniger aggressiver Bottom-Fade */
+
+/* Nur sanftes Ausfaden am unteren Rand */
 .hero-banner::after {
   content: "";
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  height: 80px;
-
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    var(--bg)
-  );
-
+  bottom: 0;
+  height: 150px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, var(--bg) 100%);
   pointer-events: none;
+  z-index: 3;
 }
 
 .hero-badge {
@@ -380,10 +384,11 @@ body {
   max-width: 210px;
 }
 
+
 #new-videos-row {
   position: relative;
   z-index: 5;
-  margin-top: -80px;
+  margin-top: -180px;
 }
 
 </style>
