@@ -256,10 +256,10 @@ body {
 
   <div class="container">
 
-    <div class="row" id="continue-row">
-      <h2>Wieder rein da!</h2>
-      <div class="row-scroll" id="continue-videos"></div>
-    </div>
+  <div class="row" id="continue-row">
+    <h2 id="continue-title">Wieder rein da!</h2>
+    <div class="row-scroll" id="continue-videos"></div>
+  </div>
 
     <div class="row">
       <h2>Eintracht Spandau</h2>
@@ -645,8 +645,9 @@ function renderContinueWatching() {
 
   const box = document.getElementById("continue-videos");
   const row = document.getElementById("continue-row");
+  const title = document.getElementById("continue-title");
 
-  if (!box || !row) return;
+  if (!box || !row || !title) return;
 
   box.innerHTML = "";
 
@@ -658,6 +659,7 @@ function renderContinueWatching() {
   }
 
   row.style.display = "block";
+  title.style.display = "block";
 
   items.forEach(entry => {
 
