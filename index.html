@@ -346,6 +346,7 @@ function startApp() {
     " Willkommen " + localStorage.getItem("user");  
 
   loadAll();
+  renderContinueWatching();
 }
 
 window.onload = () => {
@@ -690,6 +691,11 @@ function saveCurrent() {
   const duration = player.getDuration?.() || 0;
 
   if (!duration || current < 1) return;
+
+  if (current >= duration - 2) {
+    localStorage.removeItem("vid_" + currentVideo);
+    return;
+  }
   
   const title = document.querySelector(`.video[data-id="${currentVideo}"] span`)?.innerText || "";
   saveProgress(currentVideo, current, duration, title);
