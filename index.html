@@ -172,10 +172,18 @@ body {
   background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
 .logo img {
   width: 60px;
   height: 60px;
   object-fit: contain;
+  display: block;
 }
 
 .title {
@@ -293,6 +301,22 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: bold;
+}
+
+.impressum {
+  color: #9B978E;
+  text-decoration: none;
+
+  font-size: 16px; /* gleich wie Standard-Text */
+  opacity: 0.8;
+
+  display: flex;
+  align-items: center;
+}
+
+.impressum:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 /* HERO SECTION */
@@ -430,6 +454,9 @@ body {
   <div class="topbar">
     <div class="logo" onclick="location.reload()">
       <img src="./pic.png">
+      <a href="https://op.gg/de/lol/summoners/euw/nebryl-EUW" class="impressum" target="_blank">
+        Impressum
+      </a>
     </div>
 
     <h2 class="title">
