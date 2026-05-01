@@ -946,6 +946,7 @@ function startApp() {
   createRows();   // 🔥 WICHTIG
   loadAll();      // lädt alles
   renderContinueWatching();
+  trackPage("/app");
 }
 
 window.onload = () => {
@@ -1567,6 +1568,15 @@ function attachHoverPopup(card, videoId) {
       }, 100);
     }
   });
+
+  function trackPage(path = location.pathname) {
+  if (window.goatcounter) {
+    window.goatcounter.count({
+      path: path,
+      title: document.title
+    });
+  }
+}
 
   card.addEventListener("mouseleave", () => {
     container.style.display = "none";
