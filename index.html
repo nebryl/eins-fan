@@ -10,6 +10,11 @@
 <link rel="icon" href="./pic.png">
 <script src="https://www.youtube.com/iframe_api"></script>
 
+<script 
+  type="text/javascript" 
+  src="https://www.fussball.de/widgets.js">
+</script>
+
 <style>
 
 :root {
@@ -420,11 +425,25 @@ body {
 .hero-section {
   width: 100vw;
   margin-left: calc(-50vw + 50%);
-  margin-top: -20px;
-  margin-bottom: 0;
-  padding: 0;
+
   position: relative;
   z-index: 1;
+
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+
+  height: 60vh;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  #new-videos-row {
+    margin-top: -60px;
+  }
+  .hero-section {
+    height: 45vh;
+  }
 }
 
 .hero-banner {
@@ -475,14 +494,9 @@ body {
 
 .hero-info {
   position: absolute;
-
-  top: 50%;
+  top: 70%;
   right: 60px;
-
-  transform: translateY(-50%);
-
   z-index: 4;
-
   max-width: 500px;
   text-align: right;
 }
@@ -512,11 +526,10 @@ body {
   max-width: 210px;
 }
 
-
 #new-videos-row {
   position: relative;
   z-index: 10;
-  margin-top: -400px;
+  margin-top: -50px;
 }
 
 #continue-row {
@@ -639,6 +652,53 @@ body {
   color: #ddd;
 }
 
+.nav-btn {
+  background: #1b1a18;
+  border: 1px solid #2f2e2b;
+  color: #9B978E;
+
+  padding: 6px 10px;
+  border-radius: 6px;
+
+  cursor: pointer;
+  font-size: 14px;
+
+  transition: 0.2s;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.nav-btn.active {
+  background: linear-gradient(135deg, #B74F46, #316A7D);
+  color: white;
+  border: none;
+}
+
+.page {
+  display: none;
+  opacity: 0;
+}
+
+.page.active {
+  display: block;
+}
+
+.page.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 100px;
+}
+
 #playerView {
   display: flex;
   align-items: center;
@@ -744,6 +804,15 @@ body {
       <a href="https://op.gg/de/lol/summoners/euw/nebryl-EUW" class="impressum" target="_blank">
         Impressum
       </a>
+    <button onclick="showPage('einsflix', event)" 
+            class="nav-btn active" 
+            data-page="einsflix">
+      🎬 Videos
+    </button>
+
+      <button onclick="showPage('football', event)" class="nav-btn" data-page="football">
+        ⚽ Tabelle
+      </button>
     </div>
 
     <h2 class="title">
@@ -759,24 +828,25 @@ body {
     </div>
   </div>
 
-  <div class="container">
+  <div id="einsflixView" class="page active">
+    <div class="container">
 
-  <div class="hero-section" id="hero-row">
-    <div class="hero-banner" id="hero-banner"></div>
+    <div class="hero-section" id="hero-row">
+      <div class="hero-banner" id="hero-banner"></div>
+    </div>
+
+    <div class="row" id="new-videos-row">
+      <h2 id="new-videos-title">Neue Videos</h2>
+      <div class="row-scroll" id="new-videos"></div>
+    </div>
+
+    <div class="row" id="continue-row">
+      <h2 id="continue-title">Wieder rein da!</h2>
+      <div class="row-scroll" id="continue-videos"></div>
+    </div>
+
+    <div id="dynamic-rows"></div>
   </div>
-
-  <div class="row" id="new-videos-row">
-    <h2 id="new-videos-title">Neue Videos</h2>
-    <div class="row-scroll" id="new-videos"></div>
-  </div>
-
-  <div class="row" id="continue-row">
-    <h2 id="continue-title">Wieder rein da!</h2>
-    <div class="row-scroll" id="continue-videos"></div>
-  </div>
-
-  <div id="dynamic-rows"></div>
-
 </div>
 
 <!-- OVERLAY + PLAYER -->
@@ -795,6 +865,23 @@ body {
 </div>
 
 <div id="hoverPreview" class="hover-preview"></div>
+
+<div id="footballView" class="page">
+
+  <div class="card">
+
+    <h3>Tabelle:</h3>
+
+    <div 
+      class="fussballde_widget"
+      data-id="91bd1761-555a-42a8-bcc6-9c5c40151b15"
+      data-type="table"
+      style="width:100%">
+    </div>
+
+  </div>
+
+</div>
 
 <script>
 
@@ -923,6 +1010,40 @@ function selectProfile(user) {
   startApp();
 }
 
+function showPage(page, e) {
+  if (e) e.stopPropagation();
+
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === page);
+  });
+
+  const pages = {
+    einsflix: document.getElementById("einsflixView"),
+    football: document.getElementById("footballView")
+  };
+
+  Object.values(pages).forEach(p => {
+    p.classList.remove("show");
+    p.classList.remove("active");
+  });
+
+  const target = pages[page];
+  if (!target) return;
+
+  target.classList.add("active");
+
+  // 🔥 wichtig: 1 Frame warten
+  requestAnimationFrame(() => {
+    target.classList.add("show");
+  });
+
+  if (page === "football") {
+  setTimeout(() => {
+    window.dispatchEvent(new Event("resize"));
+  }, 200);
+}
+}
+
 /* ================= APP ================= */
 
 function startApp() {
@@ -935,6 +1056,9 @@ function startApp() {
 
   document.getElementById("loginView").style.display = "none";
   document.getElementById("appView").style.display = "block";
+
+  showPage("einsflix");
+  document.getElementById("einsflixView").classList.add("show");
   
   const username = localStorage.getItem("username") || "User";
 
@@ -943,18 +1067,28 @@ function startApp() {
 
   allNewVideos = [];
 
-  createRows();   // 🔥 WICHTIG
-  loadAll();      // lädt alles
+  createRows();
+  loadAll();
   renderContinueWatching();
-  trackPage("/app");
+
+  requestAnimationFrame(() => {
+    showPage("einsflix");
+  });
 }
 
 window.onload = () => {
   try {
-    if (isLoggedIn()) {
-      document.getElementById("loginView").style.display = "none";
-      document.getElementById("profileView").style.display = "block";
+
+    // Wenn nicht eingeloggt → Login zeigen
+    if (!isLoggedIn()) {
+      document.getElementById("loginView").style.display = "flex";
+      return;
     }
+
+    // Wenn eingeloggt → Profile (Presets) zeigen
+    document.getElementById("loginView").style.display = "none";
+    document.getElementById("profileView").style.display = "block";
+
   } catch (e) {
     console.error(e);
   }
@@ -1144,14 +1278,21 @@ async function loadColumn(channelId, containerId) {
 }
 
 function loadAll() {
+
+  // 🔥 1. Loader zuerst anzeigen
+  document.getElementById("new-videos").innerHTML =
+    "<div style='padding:20px'>Lade Inhalte...</div>";
+
   const promises = ACTIVE_CHANNELS.map(ch =>
     loadColumn(ch.channelId, ch.id)
   );
 
   Promise.all(promises).then(() => {
+
     allNewVideos.sort((a, b) =>
       Date.parse(b.pubDate) - Date.parse(a.pubDate)
     );
+
     renderNewVideos();
   });
 }
