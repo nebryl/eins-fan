@@ -18,7 +18,7 @@
 <style>
 
 :root {
-  --bg: #141413;
+  --bg: #000;
   --text: #9B978E;
 }
 
@@ -42,7 +42,7 @@ body {
   margin: 0;
   text-align: center;
 
-  background: radial-gradient(circle at top, #1c1b18, #0f0f0e);
+  background: var(--bg);
 }
 
 /* Login Card */
@@ -54,7 +54,7 @@ body {
   flex-direction: column;
   gap: 12px;
 
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
 
   border-radius: 16px;
@@ -81,7 +81,7 @@ body {
   border-radius: 10px;
 
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(0,0,0,0.3);
+  background: var(--bg);
 
   color: #ddd;
   outline: none;
@@ -267,13 +267,43 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 20px;
+
+  padding: 1px 20px;
+
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+
+  /* 🔥 richtig dunkler Netflix-Fade */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.95) 40%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 140px;
+  z-index: 50;
+  pointer-events: none;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.9),
+    rgba(0,0,0,0)
+  );
 }
 
 .logo {
@@ -740,6 +770,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: var(--bg);
 }
 
 .fussballde_widget {
@@ -921,7 +952,7 @@ body {
   display:none;
   position:fixed;
   inset:0;
-  background:#141413;
+  background:#000;
   z-index:99999;
   color:white;
   text-align:center;
