@@ -609,6 +609,9 @@ body::before {
   z-index: 10000;
 
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .video-meta h3 {
@@ -637,6 +640,26 @@ body::before {
   z-index: 99999;
 
   animation: colaFall 8s linear forwards;
+}
+
+.like-btn {
+  padding: 8px 12px;
+  background: #316A7D;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+#like-button {
+  position: absolute;
+  bottom: 10px;
+  right: 15px;
+}
+
+.like-btn:hover {
+  background: #316A7D;
 }
 
 .cola-icon {
@@ -1042,8 +1065,13 @@ body::before {
 </div>
 
 <div class="video-meta" id="video-meta" style="display:none;">
-  <h3 id="meta-title"></h3>
-  <p id="meta-date"></p>
+  <div class="info-left">
+    <h3 id="meta-title"></h3>
+    <p id="meta-date"></p>
+  </div>
+  <a id="like-button" target="_blank" class="like-btn">
+    👍 Liken
+  </a>
 </div>
 
 <div id="hoverPreview" class="hover-preview"></div>
@@ -1650,8 +1678,9 @@ function openPlayer(id) {
     }
 
     metaDate.innerText = "Veröffentlicht: " + dateText;
-
     metaBox.style.display = "block";
+    const likeBtn = document.getElementById("like-button");
+    likeBtn.href = `https://www.youtube.com/watch?v=${currentVideo}`;
   }
 
   const saved = getProgress(id);
