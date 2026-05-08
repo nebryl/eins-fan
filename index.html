@@ -143,6 +143,7 @@ body {
 .row-scroll {
   display: flex;
   gap: 10px;
+  height: 200px;
 
   overflow-x: auto;
   overflow-y: hidden;
@@ -237,6 +238,7 @@ body {
   background: rgba(0,0,0,0.75);
   display: none;
   z-index: 9998;
+  pointer-events: none;
 }
 
 /* PLAYER */
@@ -1276,11 +1278,21 @@ function createRows() {
     row.className = "row";
 
     row.innerHTML = `
-      <h2>${ch.title}</h2>
+      <h2 class="reloadable-title"
+          data-title="${ch.title}"
+          onclick="reloadChannel('${ch.channelId}', '${ch.id}', this)">
+        ${ch.title}
+      </h2>
       <div class="row-scroll" id="${ch.id}"></div>
     `;
 
     container.appendChild(row);
+  });
+  // 👉 Klick-Event
+  document.querySelectorAll(".reloadable").forEach(el => {
+    el.addEventListener("click", () => {
+      reloadChannel(el.dataset.channel, el.dataset.id, el);
+    });
   });
 }
 
@@ -1294,6 +1306,39 @@ function saveProgress(id, time, duration, title, isShort = false) {
     isShort,
     ts: Date.now()
   }));
+  limitProgressEntries(50);
+}
+
+function limitProgressEntries(maxItems = 50) {
+
+  const profile = localStorage.getItem("user") || "default";
+  const prefix = `vid_${profile}_`;
+
+  const items = [];
+
+  // alle relevanten Einträge sammeln
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+
+    if (!key.startsWith(prefix)) continue;
+
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      items.push({
+        key,
+        ts: data?.ts || 0
+      });
+    } catch {}
+  }
+
+  // nach Zeit sortieren (älteste zuerst)
+  items.sort((a, b) => a.ts - b.ts);
+
+  // wenn zu viele → löschen
+  while (items.length > maxItems) {
+    const oldest = items.shift();
+    localStorage.removeItem(oldest.key);
+  }
 }
 
 function getProgress(id) {
@@ -1399,75 +1444,114 @@ function createVideo(item) {
   return div;
 }
 
-/* LOAD */
-async function loadColumn(channelId, containerId) {
+async function loadChannelFeed(channelId, containerId, options = {}) {
+  const {
+    retries = 5,
+    baseDelay = 600,
+    force = false
+  } = options;
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // 🔒 Lock gegen parallele Requests
+  if (container.dataset.loading === "1" && !force) return;
+  container.dataset.loading = "1";
 
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  const proxy = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
 
-  try {
+  let lastError = null;
 
-    const res = await fetch("https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url));
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(proxy);
+      const text = await res.text();
 
-    if (!res.ok) {
-      throw new Error("HTTP Fehler: " + res.status);
-    }
+      if (text && text.includes("<feed")) {
 
-    const text = await res.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "text/xml");
+        const entries = [...xml.querySelectorAll("entry")];
 
-    if (!text.includes("<feed")) {
-      console.error("Kein XML:", text.slice(0, 200));
-      return;
-    }
+        container.innerHTML = "";
 
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "text/xml");
+        entries.forEach(entry => {
 
-    const entries = [...xml.querySelectorAll("entry")];
+          const item = {
+            title: entry.querySelector("title")?.textContent,
+            link: entry.querySelector("link")?.getAttribute("href"),
+            pubDate: entry.querySelector("published")?.textContent
+          };
 
-    const box = document.getElementById(containerId);
-    if (!box) return;
+          const card = createVideo(item);
+          container.appendChild(card);
+        });
 
-    box.innerHTML = "";
+        container.dataset.loading = "0";
+        return; // ✅ SUCCESS
 
-    entries.forEach(entry => {
-
-      const item = {
-        title: entry.querySelector("title")?.textContent,
-        link: entry.querySelector("link")?.getAttribute("href"),
-        pubDate: entry.querySelector("published")?.textContent
-      };
-
-      const card = createVideo(item);
-      box.appendChild(card);
-
-      if (isNewVideo(item)) {
-        allNewVideos.push(item);
       }
-    });
 
-  } catch (err) {
-    console.error("Feed Fehler:", err);
+      lastError = "Invalid feed response";
+
+    } catch (err) {
+      lastError = err;
+    }
+
+    // ⏳ Backoff (wichtig gegen API-Spam / Proxy Lag)
+    await new Promise(r => setTimeout(r, baseDelay * (i + 1)));
   }
+
+  container.dataset.loading = "0";
+
+  container.innerHTML = `
+    <div style="padding:20px;color:#aaa;">
+      Laden fehlgeschlagen  
+      <button onclick="reloadChannel('${channelId}', '${containerId}', this)">
+        neu versuchen
+      </button>
+    </div>
+  `;
+
+  console.warn("Feed failed:", channelId, lastError);
 }
 
 function loadAll() {
 
-  // 🔥 1. Loader zuerst anzeigen
   document.getElementById("new-videos").innerHTML =
     "<div style='padding:20px'>Lade Inhalte...</div>";
 
-  const promises = ACTIVE_CHANNELS.map(ch =>
-    loadColumn(ch.channelId, ch.id)
+  const tasks = ACTIVE_CHANNELS.map(ch =>
+    loadChannelFeed(ch.channelId, ch.id)
   );
 
-  Promise.all(promises).then(() => {
+  Promise.all(tasks).then(() => {
 
     allNewVideos.sort((a, b) =>
       Date.parse(b.pubDate) - Date.parse(a.pubDate)
     );
 
     renderNewVideos();
+
+    retryFailedRows();
+
   });
+}
+
+function retryFailedRows() {
+
+  ACTIVE_CHANNELS.forEach(ch => {
+    const container = document.getElementById(ch.id);
+
+    if (!container) return;
+
+    if (container.dataset.failed === "1") {
+      container.dataset.failed = "0";
+      loadChannelFeed(ch.channelId, ch.id, { force: true });
+    }
+  });
+
 }
 
   /* onYouTubeIframeAPIReady */
@@ -1571,6 +1655,7 @@ function openPlayer(id) {
     }, 300);
   }
 }
+
 
 function onPlayerStateChange(e) {
 
@@ -1806,7 +1891,7 @@ function saveCurrent() {
   if (!duration || current < 1) return;
 
   if (current >= duration - 2) {
-    localStorage.removeItem("vid_" + currentVideo);
+    localStorage.removeItem(getProfileKey(currentVideo));
     return;
   }
   
@@ -1835,11 +1920,68 @@ function closePlayer() {
   clearInterval(colaInterval);
 
   if (player) {
-  try {
-    player.stopVideo();
-    player.clearVideo();
-  } catch(e) {}
+    try {
+      player.stopVideo();
+      player.clearVideo();
+    } catch(e) {}
+  }
 }
+
+async function reloadChannel(channelId, containerId, el) {
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const originalTitle = el.dataset.title;
+
+  el.innerText = "⏳ Laden...";
+  el.style.pointerEvents = "none";
+
+  await loadChannelFeed(channelId, containerId, { force: true });
+
+  el.innerText = originalTitle;
+  el.style.pointerEvents = "auto";
+
+  updateNewVideosFromDOM();
+}
+
+function updateNewVideosFromDOM() {
+
+  allNewVideos = [];
+
+  ACTIVE_CHANNELS.forEach(ch => {
+
+    const container = document.getElementById(ch.id);
+    if (!container) return;
+
+    const cards = container.querySelectorAll(".video");
+
+    cards.forEach(card => {
+
+      const title = card.dataset.title;
+      const date = card.dataset.date;
+      const id = card.dataset.id;
+
+      if (!title || !date || !id) return;
+
+      const item = {
+        title,
+        link: "https://youtube.com/watch?v=" + id,
+        pubDate: date
+      };
+
+      if (isNewVideo(item)) {
+        allNewVideos.push(item);
+      }
+    });
+  });
+
+  // sortieren
+  allNewVideos.sort((a, b) =>
+    Date.parse(b.pubDate) - Date.parse(a.pubDate)
+  );
+
+  renderNewVideos();
 }
 
 let hoverPlayer = null;
