@@ -1486,6 +1486,10 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
           const card = createVideo(item);
           container.appendChild(card);
+
+            if (isNewVideo(item)) {
+              allNewVideos.push(item);
+           }
         });
 
         container.dataset.loading = "0";
@@ -1519,6 +1523,8 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
 function loadAll() {
 
+  allNewVideos = [];
+
   document.getElementById("new-videos").innerHTML =
     "<div style='padding:20px'>Lade Inhalte...</div>";
 
@@ -1531,7 +1537,7 @@ function loadAll() {
     allNewVideos.sort((a, b) =>
       Date.parse(b.pubDate) - Date.parse(a.pubDate)
     );
-
+    
     renderNewVideos();
 
     retryFailedRows();
