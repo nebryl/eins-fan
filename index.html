@@ -942,6 +942,11 @@ body::before {
   box-shadow: 0 10px 25px rgba(0,0,0,0.6);
 }
 
+#muteToggle {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
 @keyframes colaFall {
   0% {
     transform: translateY(-100px);
@@ -1034,6 +1039,9 @@ body::before {
       <span id="colaCounter">
         <img src="./cola.png" class="cola-icon"> 0
       </span>
+      <button id="muteToggle" class="nav-btn" onclick="toggleMute()">
+      🔇
+      </button>
       <span id="welcome">Willkommen <span id="user"></span></span>
       <div class="logout" onclick="logout()">Logout</div>
     </div>
@@ -1126,6 +1134,8 @@ body::before {
 /* ================= LOGIN ================= */
 
 const PASSWORD = "EinsAufDieEins";
+
+let isMuted = localStorage.getItem("muted") === "true";
 
 const PROXIES = [
   "https://api.codetabs.com/v1/proxy?quest=",
@@ -1251,6 +1261,15 @@ function selectProfile(user) {
   document.getElementById("profileView").style.display = "none";
 
   startApp();
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  localStorage.setItem("muted", isMuted);
+
+  const btn = document.getElementById("muteToggle");
+  btn.innerText = isMuted ? "🔇" : "🔊";
+  applyMuteState();
 }
 
 function showPage(page, e) {
@@ -1693,40 +1712,45 @@ function openPlayer(id) {
   const startTime = saved?.time || 0;
 
   if (!player) {
-
-  player = new YT.Player("player", {
-    videoId: id,
-    playerVars: { autoplay: 1 },
-    events: {
-      onReady: () => {
-      
-        const waitForVideo = () => {
-      
-          const duration = player.getDuration?.();
-      
-          if (!duration || duration === 0) {
-            setTimeout(waitForVideo, 200);
-            return;
-          }
-      
-          if (startTime > 1) {
-            player.seekTo(startTime, true);
-          }
-          saveCurrent();
-        };
-      
-        // kleine Startverzögerung für YouTube intern
-        setTimeout(waitForVideo, 300);
+    player = new YT.Player("player", {
+      videoId: id,
+      playerVars: {
+        autoplay: 0,
+        controls: 1,
+        rel: 0,
+        modestbranding: 1
       },
-      onStateChange: onPlayerStateChange
-    }
-  });
+      events: {
+        onReady: () => {
+          applyMuteState();
+          const waitForVideo = () => {
+
+            const duration = player.getDuration?.();
+
+            if (!duration || duration === 0) {
+              setTimeout(waitForVideo, 200);
+              return;
+            }
+
+            if (startTime > 1) {
+              player.seekTo(startTime, true);
+            }
+
+            saveCurrent();
+          };
+
+          setTimeout(waitForVideo, 300);
+        },
+        onStateChange: onPlayerStateChange
+      }
+    });
 
   } else {
-    player.loadVideoById(id);
+    player.cueVideoById(id);
+    applyMuteState();
     
     setTimeout(() => {
-    
+      
       const saved = getProgress(id);
       const time = saved?.time || 0;
     
@@ -1749,6 +1773,16 @@ function openPlayer(id) {
       waitSeek();
     
     }, 300);
+  }
+}
+
+function applyMuteState() {
+  if (!player) return;
+
+  if (isMuted) {
+    player.mute();
+  } else {
+    player.unMute();
   }
 }
 
