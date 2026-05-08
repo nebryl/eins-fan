@@ -1062,6 +1062,11 @@ body {
 
 const PASSWORD = "EinsAufDieEins";
 
+const PROXIES = [
+  "https://api.codetabs.com/v1/proxy?quest=",
+  "https://api.allorigins.win/raw?url="
+];
+
 let colaCount = Number(localStorage.getItem("colaCount") || 0);
 
 const CHANNELS_EinsOnly = [
@@ -1278,7 +1283,7 @@ function createRows() {
     row.className = "row";
 
     row.innerHTML = `
-      <h2 class="reloadable-title"
+      <h2 class="reloadable"
           data-title="${ch.title}"
           onclick="reloadChannel('${ch.channelId}', '${ch.id}', this)">
         ${ch.title}
@@ -1465,8 +1470,20 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(proxy);
-      const text = await res.text();
+      let text = null;
+      let lastError = null;
+
+      for (const base of PROXIES) {
+        try {
+          const res = await fetch(base + encodeURIComponent(url));
+          text = await res.text();
+
+          if (text && text.includes("<feed")) break;
+
+        } catch (e) {
+          lastError = e;
+        }
+      }
 
       if (text && text.includes("<feed")) {
 
@@ -1486,13 +1503,14 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
           const card = createVideo(item);
           container.appendChild(card);
-
-            if (isNewVideo(item)) {
-              allNewVideos.push(item);
-           }
+          if (!window.allNewVideos) window.allNewVideos = [];
+          if (isNewVideo(item)) {
+            allNewVideos.push(item);
+          }
         });
 
         container.dataset.loading = "0";
+        container.dataset.failed = "0";
         return; // ✅ SUCCESS
 
       }
@@ -1501,6 +1519,7 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
     } catch (err) {
       lastError = err;
+      container.dataset.failed = "1";
     }
 
     // ⏳ Backoff (wichtig gegen API-Spam / Proxy Lag)
@@ -1522,9 +1541,7 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 }
 
 function loadAll() {
-
   allNewVideos = [];
-
   document.getElementById("new-videos").innerHTML =
     "<div style='padding:20px'>Lade Inhalte...</div>";
 
@@ -1537,7 +1554,7 @@ function loadAll() {
     allNewVideos.sort((a, b) =>
       Date.parse(b.pubDate) - Date.parse(a.pubDate)
     );
-    
+
     renderNewVideos();
 
     retryFailedRows();
@@ -1726,7 +1743,7 @@ function getAllProgressEntries() {
 
     try {
       const data = JSON.parse(localStorage.getItem(key));
-      if (!data || !data.time || !data.duration) continue;
+      if (!data || data.time == null || data.duration == null) continue;
 
       const id = key.replace(prefix, "");
 
@@ -1996,7 +2013,8 @@ let hoverPlayer = null;
 function attachHoverPopup(card, videoId) {
 
   const container = card.querySelector(".video-hover");
-  let hoverPlayer = null;
+  card._hoverPlayer = null;
+
 
   function createPlayer() {
     if (!window.YT || !YT.Player) {
