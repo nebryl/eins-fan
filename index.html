@@ -1506,7 +1506,7 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
       for (const base of PROXIES) {
         try {
-          const res = await fetch(base + encodeURIComponent(url));
+          const res = await fetchWithTimeout(base + encodeURIComponent(url), 2000);
           text = await res.text();
 
           if (text && text.includes("<feed")) break;
@@ -1542,6 +1542,7 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
         container.dataset.loading = "0";
         container.dataset.failed = "0";
+        console.log("Channel fertig:", channelId);
         return; // ✅ SUCCESS
 
       }
@@ -1571,6 +1572,15 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
   console.warn("Feed failed:", channelId, lastError);
 }
 
+function fetchWithTimeout(url, timeout = 5000) {
+  return Promise.race([
+    fetch(url),
+    new Promise((_, reject) =>
+      setTimeout(() => reject("timeout"), timeout)
+    )
+  ]);
+}
+
 function loadAll() {
   allNewVideos = [];
   document.getElementById("new-videos").innerHTML =
@@ -1580,16 +1590,13 @@ function loadAll() {
     loadChannelFeed(ch.channelId, ch.id)
   );
 
-  Promise.all(tasks).then(() => {
-
+  Promise.allSettled(tasks).then(() => {
     allNewVideos.sort((a, b) =>
       Date.parse(b.pubDate) - Date.parse(a.pubDate)
     );
 
     renderNewVideos();
-
     retryFailedRows();
-
   });
 }
 
@@ -1847,6 +1854,7 @@ function renderContinueWatching() {
 
 /* renderNewVideos */
 function renderNewVideos() {
+
   const heroBox = document.getElementById("hero-banner");
   const box = document.getElementById("new-videos");
   const row = document.getElementById("new-videos-row");
