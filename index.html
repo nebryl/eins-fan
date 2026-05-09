@@ -33,8 +33,9 @@ body.skin-classic {
   --bg: #000;
   --bglight: #131313; 
   --text: #ffffff;  /* 9B978E leicht aufgehellt für besseren Kontrast */
-  --accent: #000000;
+  --accent: #000;
   --shadow: 1px;
+  --shadowColor: #ffffff;
   --topbar-gradient: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
@@ -50,6 +51,7 @@ body.skin-white {
   --text: #000000;
   --accent: #316A7D;
   --shadow: 25px;
+  --shadowColor: #000000;
   --topbar-gradient: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
@@ -60,16 +62,17 @@ body.skin-white {
 }
 
 body.skin-citadel {
-  --bg: #120b0a; /* viel dunkler = hochwertiger */
-  --bglight: #2b1611;
-  --text: #e8e2dc;
-  --accent: #b08a57; /* Gold/Amber Akzent */
-  --shadow: 25px;
+  --bg: #0d0f12;
+  --bglight: #1b3f4d;
+  --text: #828282;
+  --accent: #316A7D;
+  --shadow: 35px;
+  --shadowColor: #B74F46;
   --topbar-gradient: linear-gradient(
     to bottom,
-    rgba(10, 6, 5, 0.95) 0%,
-    rgba(18, 11, 10, 0.85) 40%,
-    rgba(18, 11, 10, 0.55) 70%,
+    rgba(8, 10, 12, 0.98) 0%,
+    rgba(13, 15, 18, 0.92) 35%,
+    rgba(13, 15, 18, 0.70) 65%,
     rgba(0, 0, 0, 0) 100%
   );
 }
@@ -184,7 +187,7 @@ body.skin-citadel {
   border-radius: 12px;
   background: var(--bglight);
   border: 1px solid var(--accent);
-  box-shadow: 0 1px var(--shadow) var(--text);
+  box-shadow: 0 1px var(--shadow) var(--shadowColor);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -1311,7 +1314,7 @@ const SKINS = {
   },
   "skin-citadel": {
     name: "Zitadelle",
-    required: 10000
+    required: 0
   }
 };
 
