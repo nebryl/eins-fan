@@ -1019,7 +1019,7 @@ body::before {
       <button onclick="showPage('einsflix', event)" 
               class="nav-btn active" 
               data-page="einsflix">
-        🎬 Videos
+        🎬 Flix
       </button>
       <button onclick="showPage('football', event)" class="nav-btn" data-page="football">
         ⚽ Fussball
@@ -1092,6 +1092,12 @@ body::before {
 <div id="hoverPreview" class="hover-preview"></div>
 
 <div id="footballView" class="page">
+  
+  <div class="hero-section" id="hero-row">
+    <div class="hero-banner" id="hero-banner-football"></div>
+  </div>
+
+  <div id="football-dynamic"></div>
 
   <div class="row" id="letztesSpiel-row">
     <h2>Spiele</h2>
@@ -1341,10 +1347,11 @@ function showPage(page, e) {
   });
 
   if (page === "football") {
-  setTimeout(() => {
-    window.dispatchEvent(new Event("resize"));
-  }, 200);
-}
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 200);
+    loadFootballPage();
+  }
 }
 
 /* ================= APP ================= */
@@ -2359,6 +2366,96 @@ function createLinkTile(title, imageOrText, link) {
   a.appendChild(label);
 
   return a;
+}
+
+function createChannelRow(title, rowId) {
+
+  const row = document.createElement("div");
+  row.className = "row";
+
+  const h2 = document.createElement("h2");
+  h2.innerText = title;
+
+  const scroll = document.createElement("div");
+  scroll.className = "row-scroll";
+  scroll.id = rowId;
+
+  row.appendChild(h2);
+  row.appendChild(scroll);
+
+  return { row, scroll };
+}
+
+function loadSingleChannelToView(channelId, title) {
+
+  const container = document.getElementById("football-dynamic");
+  if (!container) return;
+
+  const rowId = "row-" + channelId;
+
+  // 🔥 Row erstellen und in Page einfügen
+  const { row, scroll } = createChannelRow(title, rowId);
+
+  container.appendChild(row);
+
+  // 🔥 nur diese Row befüllen
+  loadChannelFeed(channelId, rowId);
+}
+
+function loadFootballPage() {
+
+  const container = document.getElementById("football-dynamic");
+  if (!container || container.dataset.loaded === "1") return;
+
+  container.dataset.loaded = "1";
+
+  loadSingleChannelToView(
+    "UCMQkXTIDVvVDh0ZuVB_0APg",
+    "Eintracht Spandau Fußball"
+  );
+    setTimeout(() => {
+    loadFootballHeroFromFeed();
+  }, 1000);
+}
+
+function renderFootballHero(item) {
+
+  const hero = document.getElementById("hero-banner-football");
+  if (!hero || !item) return;
+
+  const id = getVideoId(item.link);
+
+  hero.innerHTML = `
+    <img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg"
+      onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">
+
+    <div class="hero-info">
+      <h1>${item.title}</h1>
+    </div>
+  `;
+
+  hero.onclick = () => openPlayer(id);
+}
+
+function loadFootballHeroFromFeed() {
+
+  const container = document.getElementById("fussball-videos");
+  if (!container) return;
+
+  const firstCard = container.querySelector(".video");
+
+  if (!firstCard) return;
+
+  const img = firstCard.querySelector("img")?.src;
+  const title = firstCard.querySelector("span")?.innerText || "Fußball";
+
+  const match = img?.match(/vi\/(.+?)\//);
+  if (!match) return;
+
+  renderFootballHero({
+    link: "https://youtube.com/watch?v=" + match[1],
+    title
+  });
 }
 
 function loadIconTiles() {
