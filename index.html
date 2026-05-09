@@ -479,12 +479,29 @@ body::before {
   height: 60vh;
   overflow: hidden;
 }
+.hero-section-football {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+
+  position: relative;
+  z-index: 1;
+
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+
+  height: 60vh;
+  overflow: hidden;
+}
 
 @media (max-width: 768px) {
   #new-videos-row {
     margin-top: -60px;
   }
   .hero-section {
+    height: 45vh;
+  }
+  .hero-section-football {
     height: 45vh;
   }
 }
@@ -522,7 +539,48 @@ body::before {
   mask-size: 100% 100%;
 }
 
+.hero-banner-football {
+  width: 100%;
+  height: 100%;
+  background: #2a2926;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 2;
+
+  /* Weiche Maske für sanftes Ausfaden */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 65%,
+    rgba(0,0,0,0.6) 75%,
+    rgba(0,0,0,0.2) 85%,
+    rgba(0,0,0,0) 100%
+  );
+
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 65%,
+    rgba(0,0,0,0.6) 75%,
+    rgba(0,0,0,0.2) 85%,
+    rgba(0,0,0,0) 100%
+  );
+
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 .hero-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+.hero-banner-football img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -824,7 +882,7 @@ body::before {
 }
 
 #footballView {
-  padding: 90px 20px 20px 20px; /* wichtig: links/rechts Abstand */
+  padding: 10px 20px 20px 10px; /* wichtig: links/rechts Abstand */
 }
 
 #footballView .card {
@@ -1090,7 +1148,7 @@ body::before {
 
 <div id="footballView" class="page">
   
-  <div class="hero-section" id="hero-row">
+  <div class="hero-section-football" id="hero-row">
     <div class="hero-banner" id="hero-banner-football"></div>
   </div>
 
