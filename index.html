@@ -1024,9 +1024,6 @@ body::before {
       <button onclick="showPage('football', event)" class="nav-btn" data-page="football">
         ⚽ Fussball
       </button>
-      <button onclick="showPage('icon', event)" class="nav-btn" data-page="icon">
-        🏆 ICON
-      </button>
       <a href="https://op.gg/de/lol/summoners/euw/nebryl-EUW" class="impressum" target="_blank">
         Impressum
       </a>
@@ -1123,15 +1120,9 @@ body::before {
     </div>
   </div>
 
-</div>
-
-<div id="iconView" class="page">
-
-  <div class="container" style="padding-top:90px;">
-    <div class="row">
-      <h2>Icon League</h2>
-      <div class="row-scroll" id="icon-videos"></div>
-    </div>
+  <div class="row">
+    <h2>ICON League</h2>
+    <div class="row-scroll" id="icon-videos"></div>
   </div>
 
 </div>
@@ -1328,7 +1319,6 @@ function showPage(page, e) {
   const pages = {
     einsflix: document.getElementById("einsflixView"),
     football: document.getElementById("footballView"),
-    icon: document.getElementById("iconView")
   };
 
   Object.values(pages).forEach(p => {
