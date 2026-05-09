@@ -31,7 +31,10 @@ body {
 
 body.skin-classic {
   --bg: #000;
-  --text: #9B978E;
+  --bglight: #131313; 
+  --text: #ffffff;  /* 9B978E leicht aufgehellt für besseren Kontrast */
+  --accent: #000000;
+  --shadow: 1px;
   --topbar-gradient: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
@@ -43,16 +46,19 @@ body.skin-classic {
 
 body.skin-white {
   --bg: #f4f4f4;
+  --bglight: #000000; 
   --text: #000000;
+  --accent: #316A7D;
+  --shadow: 25px;
   --topbar-gradient: none;
 }
 
 body.skin-citadel {
   --bg: #120b0a; /* viel dunkler = hochwertiger */
+  --bglight: #2b1611;
   --text: #e8e2dc;
-
   --accent: #b08a57; /* Gold/Amber Akzent */
-
+  --shadow: 25px;
   --topbar-gradient: linear-gradient(
     to bottom,
     rgba(10, 6, 5, 0.95) 0%,
@@ -68,13 +74,10 @@ body.skin-citadel {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   height: 100vh;
   width: 100%;
-
   margin: 0;
   text-align: center;
-
   background: var(--bg);
 }
 
@@ -86,17 +89,12 @@ body.skin-citadel {
   display: flex;
   flex-direction: column;
   gap: 12px;
-
   background: var(--bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
-
   border-radius: 16px;
-
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-
   box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-
   animation: popIn 0.4s ease;
 }
 
@@ -112,13 +110,10 @@ body.skin-citadel {
 #loginView input {
   padding: 12px;
   border-radius: 10px;
-
   border: 1px solid rgba(255,255,255,0.08);
   background: var(--bg);
-
   color: #ddd;
   outline: none;
-
   transition: 0.2s;
 }
 
@@ -131,12 +126,9 @@ body.skin-citadel {
 #loginView button {
   padding: 12px;
   border-radius: 10px;
-
   border: none;
   cursor: pointer;
-
   font-weight: bold;
-
   background: linear-gradient(135deg, #B74F46, #316A7D);
   color: white;
 
@@ -177,20 +169,18 @@ body.skin-citadel {
   display: flex;
   gap: 10px;
   height: 200px;
-
   overflow-x: auto;
   overflow-y: hidden;
-
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   padding: 10px;
-
   border-radius: 12px;
+  background: var(--bglight);
+  border: 1px solid var(--accent);
+  box-shadow: 0 1px var(--shadow) var(--text);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .row-scroll::-webkit-scrollbar {
@@ -317,7 +307,7 @@ body::before {
   top: 0;
   left: 0;
   width: 100%;
-  height: 140px;
+  height: 50px;
   z-index: 50;
   pointer-events: none;
 
@@ -533,20 +523,11 @@ body::before {
 .hero-banner {
   width: 100%;
   height: 100%;
-  background: #2a2926;
+  background: var(--bg);
   position: relative;
   cursor: pointer;
   overflow: hidden;
   z-index: 2;
-
-  /* Weiche Maske für sanftes Ausfaden */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0,0,0,1) 65%,
-    rgba(0,0,0,0.6) 75%,
-    rgba(0,0,0,0.2) 85%,
-    rgba(0,0,0,0) 100%
-  );
 
   mask-image: linear-gradient(
     to bottom,
@@ -555,10 +536,6 @@ body::before {
     rgba(0,0,0,0.2) 85%,
     rgba(0,0,0,0) 100%
   );
-
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
 }
@@ -572,15 +549,6 @@ body::before {
   overflow: hidden;
   z-index: 2;
 
-  /* Weiche Maske für sanftes Ausfaden */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0,0,0,1) 65%,
-    rgba(0,0,0,0.6) 75%,
-    rgba(0,0,0,0.2) 85%,
-    rgba(0,0,0,0) 100%
-  );
-
   mask-image: linear-gradient(
     to bottom,
     rgba(0,0,0,1) 65%,
@@ -588,10 +556,6 @@ body::before {
     rgba(0,0,0,0.2) 85%,
     rgba(0,0,0,0) 100%
   );
-
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
 }
@@ -628,14 +592,10 @@ body::before {
 
 .hero-info h1 {
   margin: 0;
-
   font-size: 20px;
   font-weight: 600;
-
-  color: #fff;
-
+  color: var(--text);
   line-height: 1.2;
-
   text-shadow: 0 4px 20px rgba(0,0,0,0.9);
 }
 
