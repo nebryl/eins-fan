@@ -596,6 +596,7 @@ body::before {
 .hover-preview iframe {
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .video-meta {
@@ -1202,6 +1203,7 @@ const CHANNELS_EinsPlus = [
 
 let ACTIVE_CHANNELS = [];
 let currentUser = null;
+let muteInitDone = false;
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -1235,7 +1237,9 @@ function togglePassword() {
 }
 
 function logout() {
-  localStorage.clear();
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem("username");
+  localStorage.removeItem("user");
   location.reload();
 }
 
@@ -1263,13 +1267,49 @@ function selectProfile(user) {
   startApp();
 }
 
+function syncMuteOnce() {
+
+  if (!player || muteInitDone) return;
+
+  muteInitDone = true;
+
+  // 🔥 Trick: einmal togglen, damit YouTube State "snapt"
+  player.unMute();
+  player.mute();
+
+  // dann sofort finaler Zustand setzen
+  setTimeout(() => {
+    if (isMuted) {
+      player.mute();
+    } else {
+      player.unMute();
+    }
+  }, 50);
+}
+
 function toggleMute() {
   isMuted = !isMuted;
   localStorage.setItem("muted", isMuted);
 
   const btn = document.getElementById("muteToggle");
-  btn.innerText = isMuted ? "🔇" : "🔊";
-  applyMuteState();
+  if (btn) {
+    btn.innerText = isMuted ? "🔇" : "🔊";
+  }
+  forceMuteState();
+}
+
+function forceMuteState() {
+
+  if (!player) return;
+  try {
+    if (isMuted) {
+      player.mute();
+    } else {
+      player.unMute();
+    }
+  } catch (e) {
+    console.warn("forceMuteState failed", e);
+  }
 }
 
 function showPage(page, e) {
@@ -1376,12 +1416,6 @@ function createRows() {
     `;
 
     container.appendChild(row);
-  });
-  // 👉 Klick-Event
-  document.querySelectorAll(".reloadable").forEach(el => {
-    el.addEventListener("click", () => {
-      reloadChannel(el.dataset.channel, el.dataset.id, el);
-    });
   });
 }
 
@@ -1555,7 +1589,6 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
   for (let i = 0; i < retries; i++) {
     try {
       let text = null;
-      let lastError = null;
 
       for (const base of PROXIES) {
         try {
@@ -1722,7 +1755,8 @@ function openPlayer(id) {
       },
       events: {
         onReady: () => {
-          applyMuteState();
+          syncMuteOnce();
+          forceMuteState();
           const waitForVideo = () => {
 
             const duration = player.getDuration?.();
@@ -1747,7 +1781,9 @@ function openPlayer(id) {
 
   } else {
     player.cueVideoById(id);
-    applyMuteState();
+    setTimeout(forceMuteState, 50);
+    setTimeout(forceMuteState, 250);
+    setTimeout(forceMuteState, 800);
     
     setTimeout(() => {
       
@@ -1776,20 +1812,10 @@ function openPlayer(id) {
   }
 }
 
-function applyMuteState() {
-  if (!player) return;
-
-  if (isMuted) {
-    player.mute();
-  } else {
-    player.unMute();
-  }
-}
-
-
-function onPlayerStateChange(e) {
+  function onPlayerStateChange(e) {
 
   if (e.data === YT.PlayerState.PLAYING) {
+    forceMuteState();
     startProgress();
     saveCurrent();
     colaStart();
@@ -2115,68 +2141,129 @@ function updateNewVideosFromDOM() {
   renderNewVideos();
 }
 
-let hoverPlayer = null;
-
-
 function attachHoverPopup(card, videoId) {
 
+  // Mobile / Touch Geräte ignorieren
+  if (window.matchMedia("(hover: none)").matches) {
+    return;
+  }
+
   const container = card.querySelector(".video-hover");
-  card._hoverPlayer = null;
 
+  if (!container) return;
 
-  function createPlayer() {
+  let hoverPlayer = null;
+  let hoverTimeout = null;
+  let playerReady = false;
+  let destroyed = false;
+
+  async function ensurePlayer() {
+
+    if (hoverPlayer || destroyed) return;
+
+    // Warten bis YT API geladen
     if (!window.YT || !YT.Player) {
-      console.warn("YT API not ready yet");
-      return;
+      await new Promise(resolve => {
+        const wait = setInterval(() => {
+          if (window.YT && YT.Player) {
+            clearInterval(wait);
+            resolve();
+          }
+        }, 100);
+      });
     }
 
-    hoverPlayer = new YT.Player(container.id, {
+    if (destroyed) return;
+
+    hoverPlayer = new YT.Player(container, {
       videoId: videoId,
+
       playerVars: {
         autoplay: 1,
         mute: 1,
         controls: 0,
         rel: 0,
-        modestbranding: 1
+        modestbranding: 1,
+        playsinline: 1
+      },
+
+      events: {
+        onReady: () => {
+          playerReady = true;
+        }
       }
     });
   }
 
-  card.addEventListener("mouseenter", () => {
-    container.style.display = "block";
+  async function startHover() {
 
-    // sicherstellen dass API da ist
-    if (window.YT && YT.Player) {
-      createPlayer();
-    } else {
-      const wait = setInterval(() => {
-        if (window.YT && YT.Player) {
-          clearInterval(wait);
-          createPlayer();
-        }
-      }, 100);
-    }
-  });
+    destroyed = false;
 
-  function trackPage(path = location.pathname) {
-  if (window.goatcounter) {
-    window.goatcounter.count({
-      path: path,
-      title: document.title
-    });
+    // kleiner Delay gegen Hover-Spam
+    hoverTimeout = setTimeout(async () => {
+
+      container.style.display = "block";
+
+      await ensurePlayer();
+
+      if (!hoverPlayer || !playerReady) return;
+
+      try {
+        hoverPlayer.seekTo(0);
+        hoverPlayer.playVideo();
+      } catch (e) {
+        console.warn("Hover play failed", e);
+      }
+
+    }, 350);
   }
-}
 
-  card.addEventListener("mouseleave", () => {
+  function stopHover() {
+
+    clearTimeout(hoverTimeout);
+
     container.style.display = "none";
-    container.innerHTML = "";
 
-    if (hoverPlayer) {
+    if (!hoverPlayer || !playerReady) return;
+
+    try {
+      hoverPlayer.pauseVideo();
+      hoverPlayer.seekTo(0);
       hoverPlayer.destroy();
-      hoverPlayer = null;
+    } catch (e) {}
+    hoverPlayer = null;
+    playerReady = false;
+    container.innerHTML = "";
+  }
+
+  card.addEventListener("pointerenter", startHover);
+  card.addEventListener("pointerleave", stopHover);
+
+  // Optional Cleanup wenn Card entfernt wird
+  const observer = new MutationObserver(() => {
+
+    if (!document.body.contains(card)) {
+
+      destroyed = true;
+
+      clearTimeout(hoverTimeout);
+
+      if (hoverPlayer) {
+        try {
+          hoverPlayer.destroy();
+        } catch (e) {}
+      }
+
+      observer.disconnect();
     }
   });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 }
+
 
 function getProfileKey(id) {
   const profile = localStorage.getItem("user") || "default";
