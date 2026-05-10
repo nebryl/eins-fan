@@ -1242,8 +1242,12 @@ let isMuted = localStorage.getItem("muted") === "true";
 
 const PROXIES = [
   "https://api.codetabs.com/v1/proxy?quest=",
-  "https://api.allorigins.win/raw?url="
+  "https://api.allorigins.win/raw?url=",
+  "https://cors.isomorphic-git.org/",
+  "https://corsproxy.io/?",
+  "https://proxy.cors.sh/"
 ];
+
 const FEED_CACHE = new Map();
 const CACHE_TIME = 5 * 60 * 1000;
 const ACTIVE_REQUESTS = new Map();
