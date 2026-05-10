@@ -1397,21 +1397,24 @@ function selectProfile(user) {
 function syncMuteOnce() {
 
   if (!player || muteInitDone) return;
-
   muteInitDone = true;
 
-  // 🔥 Trick: einmal togglen, damit YouTube State "snapt"
-  player.unMute();
-  player.mute();
+  const applyMute = () => {
+    try {
+      if (isMuted) {
+        player.mute();
+      } else {
+        player.unMute();
+      }
+    } catch (e) {}
+  };
 
-  // dann sofort finaler Zustand setzen
-  setTimeout(() => {
-    if (isMuted) {
-      player.mute();
-    } else {
-      player.unMute();
-    }
-  }, 50);
+  // 🔥 mehrfach absichern gegen YouTube timing bugs
+  applyMute();
+
+  setTimeout(applyMute, 100);
+  setTimeout(applyMute, 300);
+  setTimeout(applyMute, 800);
 }
 
 function toggleMute() {
@@ -1419,10 +1422,11 @@ function toggleMute() {
   localStorage.setItem("muted", isMuted);
 
   const btn = document.getElementById("muteToggle");
-  if (btn) {
-    btn.innerText = isMuted ? "🔇" : "🔊";
-  }
-  forceMuteState();
+  if (btn) btn.innerText = isMuted ? "🔇" : "🔊";
+
+  requestAnimationFrame(forceMuteState);
+  setTimeout(forceMuteState, 50);
+  setTimeout(forceMuteState, 200);
 }
 
 function forceMuteState() {
