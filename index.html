@@ -212,6 +212,7 @@ const PROXIES = [
   "https://proxy.cors.sh/"
 ];
 
+const ACTIVE_HOVER_PLAYERS = new Set();
 const FEED_CACHE = new Map();
 const CACHE_TIME = 5 * 60 * 1000;
 const ACTIVE_REQUESTS = new Map();
@@ -667,7 +668,10 @@ function createVideo(item) {
     }, 0);
   }
 
-  div.onclick = () => openPlayer(id);
+  div.onclick = () => {
+    stopAllHovers();
+    openPlayer(id);
+  };
 
   setTimeout(() => {
     attachHoverPopup(div, id);
@@ -1385,6 +1389,7 @@ function attachHoverPopup(card, videoId) {
     playerReady = false;
     container.innerHTML = "";
   }
+  ACTIVE_HOVER_PLAYERS.add(stopHover);
 
   card.addEventListener("pointerenter", startHover);
   card.addEventListener("pointerleave", stopHover);
@@ -1414,6 +1419,15 @@ function attachHoverPopup(card, videoId) {
   });
 }
 
+function stopAllHovers() {
+  ACTIVE_HOVER_PLAYERS.forEach(fn => {
+    try {
+      fn();
+    } catch (e) {}
+  });
+
+  ACTIVE_HOVER_PLAYERS.clear();
+}
 
 function getProfileKey(id) {
   const profile = localStorage.getItem("user") || "default";
@@ -1716,10 +1730,10 @@ function getStickyProxy(channelId) {
 }
 
 function updateStickyProxy(channelId, proxy) {
-  const current = CHANNEL_PROXY_MAP[channelId];
+  const current = CHANNEL_PROXY_MAP.get(channelId);
   // nur ersetzen wenn neuer Proxy besser sein könnte
   if (!current || current !== proxy) {
-    CHANNEL_PROXY_MAP[channelId] = proxy;
+    CHANNEL_PROXY_MAP.set(channelId, proxy);
     localStorage.setItem(
       "proxyMap",
       JSON.stringify(Object.fromEntries(CHANNEL_PROXY_MAP))
