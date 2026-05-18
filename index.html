@@ -216,8 +216,9 @@ const FEED_CACHE = new Map();
 const CACHE_TIME = 5 * 60 * 1000;
 const ACTIVE_REQUESTS = new Map();
 const FEED_ABORTS = new Map();
-const CHANNEL_PROXY_MAP = new Map(); 
-
+const CHANNEL_PROXY_MAP = new Map(
+  Object.entries(JSON.parse(localStorage.getItem("proxyMap") || "{}"))
+);
 let colaCount = Number(localStorage.getItem("colaCount") || 0);
 
 const CHANNELS_EinsOnly = [
@@ -646,7 +647,7 @@ function createVideo(item) {
   div.dataset.date = item.pubDate;
 
   div.innerHTML = `
-    <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg">
+    <img loading="lazy" src="https://img.youtube.com/vi/${id}/hqdefault.jpg">
     <span>${item.title}</span>
     <div class="mini-progress"></div>
 
@@ -750,7 +751,7 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
   // -----------------------------
   // STRATEGY: Sticky First, then fallback
   // -----------------------------
-  const sticky = getStickyProxy(channelId, proxies);
+  const sticky = getStickyProxy(channelId);
   const others = proxies.filter(p => p !== sticky);
 
   try {
@@ -818,21 +819,21 @@ function renderFeed(entries, container) {
 
 }
 
-function loadAll() {
+async function loadAll() {
   allNewVideos = [];
   document.getElementById("new-videos").innerHTML =
     "<div style='padding:20px'>Lade Inhalte...</div>";
-    (async () => {
-      for (const ch of ACTIVE_CHANNELS) {
-        await loadChannelFeed(ch.channelId, ch.id);
-        await new Promise(r => setTimeout(r, 400));
-      }
-      allNewVideos.sort((a, b) =>
-        Date.parse(b.pubDate) - Date.parse(a.pubDate)
-      );
-      renderNewVideos();
-      retryFailedRows();
-  })();
+
+  await Promise.all(
+    ACTIVE_CHANNELS.map(ch =>
+      loadChannelFeed(ch.channelId, ch.id)
+    )
+  );
+  allNewVideos.sort((a, b) =>
+    Date.parse(b.pubDate) - Date.parse(a.pubDate)
+  );
+  renderNewVideos();
+  retryFailedRows();
 }
 
 function retryFailedRows() {
@@ -1705,17 +1706,24 @@ function getStickyProxy(channelId) {
   if (sticky && PROXIES.includes(sticky)) {
     return sticky;
   }
-  // fallback: einmal initial wählen
   const fallback = PROXIES[Math.floor(Math.random() * PROXIES.length)];
   CHANNEL_PROXY_MAP.set(channelId, fallback);
+  localStorage.setItem(
+    "proxyMap",
+    JSON.stringify(Object.fromEntries(CHANNEL_PROXY_MAP))
+  );
   return fallback;
 }
 
 function updateStickyProxy(channelId, proxy) {
-  const current = CHANNEL_PROXY_MAP.get(channelId);
+  const current = CHANNEL_PROXY_MAP[channelId];
   // nur ersetzen wenn neuer Proxy besser sein könnte
   if (!current || current !== proxy) {
-    CHANNEL_PROXY_MAP.set(channelId, proxy);
+    CHANNEL_PROXY_MAP[channelId] = proxy;
+    localStorage.setItem(
+      "proxyMap",
+      JSON.stringify(Object.fromEntries(CHANNEL_PROXY_MAP))
+    );
   }
 }
 
