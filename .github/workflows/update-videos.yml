@@ -1,0 +1,38 @@
+name: Update Videos
+
+on:
+
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+
+  update:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Feed Script
+        run: node scripts/updateFeeds.js
+
+      - name: Commit JSON
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: update cached videos
