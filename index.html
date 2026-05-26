@@ -462,7 +462,7 @@ async function startApp() {
 
   await initVideos();
 
-  const savedSkin = localStorage.getItem("skin") || "skin-classic";
+  const savedSkin = localStorage.getItem("skin") || "skin-white";
   document.body.classList.add(savedSkin);
 
   updateColaUI();
@@ -637,6 +637,11 @@ function isNewVideo(item) {
 /* CARD */
 function createVideo(item) {
 
+const badge =
+  item.source === "proxy"
+    ? '<div class="badge badge-proxy">LIVE</div>'
+    : '<div class="badge badge-local">LOCAL</div>';
+
   const id = getVideoId(item.link);
   if (!id) return document.createElement("div");
 
@@ -658,6 +663,7 @@ function createVideo(item) {
   div.innerHTML = `
     <img loading="lazy" src="https://img.youtube.com/vi/${id}/hqdefault.jpg">
     <span>${item.title}</span>
+    ${badge}
     <div class="mini-progress"></div>
 
     <!-- 🔥 FIX IST HIER -->
@@ -783,13 +789,19 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
     if (ACTIVE_REQUESTS.get(containerId) !== requestId) return;
     if (!isValid(text)) throw new Error("invalid feed");
 
-    const parsed = parseFeed(text);
+    const parsed = parseFeed(text).map(v => ({
+      ...v,
+      source: "proxy"
+    }));
     if (!parsed.length) throw new Error("empty feed");
 
     // =============================
     // MERGE LOCAL + LIVE
     // =============================
-    const localVideos = LOCAL_VIDEOS[channelId] || [];
+    const localVideos = (LOCAL_VIDEOS[channelId] || []).map(v => ({
+      ...v,
+      source: "local"
+    }));
     const merged = mergeFeeds(localVideos, parsed);
 
     // =============================
