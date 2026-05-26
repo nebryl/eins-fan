@@ -1,8 +1,11 @@
 name: Update Videos
 
 on:
-
   workflow_dispatch:
+
+  push:
+    branches:
+      - main
 
   schedule:
     - cron: "*/30 * * * *"
@@ -10,14 +13,15 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-videos
+  cancel-in-progress: true
+
 jobs:
-
   update:
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repo
         uses: actions/checkout@v4
 
@@ -27,7 +31,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Feed Script
         run: node scripts/updateFeeds.js
@@ -36,3 +40,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: update cached videos
+          file_pattern: videos.json
