@@ -528,6 +528,21 @@ body::before {
 }
 
 @media (max-width: 768px) {
+  .topbar {
+    padding: 12px 12px;
+    min-height: 70px;
+  }
+  .logo img {
+    width: 42px;
+    height: 42px;
+  }
+  .title {
+    font-size: 18px;
+  }
+  .nav-btn {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
   #new-videos-row {
     margin-top: -60px;
   }
