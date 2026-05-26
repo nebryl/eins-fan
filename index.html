@@ -204,6 +204,8 @@ const PASSWORD = "EinsAufDieEins";
 
 let isMuted = localStorage.getItem("muted") === "true";
 
+let LOCAL_VIDEOS = {};
+
 const PROXIES = [
   "https://api.codetabs.com/v1/proxy?quest=",
   "https://api.allorigins.win/raw?url=",
@@ -456,7 +458,9 @@ function showPage(page, e) {
 
 /* ================= APP ================= */
 
-function startApp() {
+async function startApp() {
+
+  await initVideos();
 
   const savedSkin = localStorage.getItem("skin") || "skin-classic";
   document.body.classList.add(savedSkin);
@@ -507,6 +511,10 @@ window.onload = () => {
     console.error(e);
   }
 };
+
+async function initVideos() {
+  LOCAL_VIDEOS = await loadLocalVideos();
+}
 
 function createRows() {
   const container = document.getElementById("dynamic-rows");
@@ -702,19 +710,9 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
-  // -----------------------------
-  // CACHE FIRST
-  // -----------------------------
-  const cached = getCachedFeed(channelId);
-  if (cached && !force) {
-    renderFeed(cached, container);
-    container.dataset.loading = "0";
-    return;
-  }
-
-  // -----------------------------
+  // =============================
   // XML PARSER
-  // -----------------------------
+  // =============================
   const parseFeed = (text) => {
     const xml = new DOMParser().parseFromString(text, "text/xml");
 
@@ -728,16 +726,14 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
   const isValid = (text) =>
     text && text.includes("<entry") && text.includes("<feed");
 
-  // -----------------------------
+  // =============================
   // FETCH WITH TIMEOUT
-  // -----------------------------
+  // =============================
   const fetchWithTimeout = (proxy) => {
     const target = proxy + encodeURIComponent(url);
 
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error("timeout"));
-      }, timeout);
+      const timer = setTimeout(() => reject(new Error("timeout")), timeout);
 
       fetch(target, { signal: controller.signal })
         .then(res => res.text())
@@ -752,38 +748,63 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
     });
   };
 
-  // -----------------------------
-  // STRATEGY: Sticky First, then fallback
-  // -----------------------------
-  const sticky = getStickyProxy(channelId);
-  const others = proxies.filter(p => p !== sticky);
-
+  // =============================
+  // CACHE FIRST (MERGED)
+  // =============================
   try {
+    const local = LOCAL_VIDEOS[channelId] || [];
+    const cached = getCachedFeed(channelId);
+
+    if (cached && !force) {
+      const mergedCache = mergeFeeds(local, cached);
+      renderFeed(mergedCache, container);
+      container.dataset.loading = "0";
+      return;
+    }
+
+    // =============================
+    // PROXY STRATEGY
+    // =============================
+    const sticky = getStickyProxy(channelId);
+    const others = proxies.filter(p => p !== sticky);
+
     let result;
 
-    // 1️⃣ Try sticky proxy first (FAST PATH)
     try {
       result = await fetchWithTimeout(sticky);
     } catch (e) {
-      // 2️⃣ fallback parallel (only if sticky fails)
       result = await Promise.any(
         others.map(p => fetchWithTimeout(p))
       );
     }
 
     const { text, proxy } = result;
+
     if (ACTIVE_REQUESTS.get(containerId) !== requestId) return;
     if (!isValid(text)) throw new Error("invalid feed");
+
     const parsed = parseFeed(text);
     if (!parsed.length) throw new Error("empty feed");
 
-    // 💡 cache + sticky learning
-    setCachedFeed(channelId, parsed);
+    // =============================
+    // MERGE LOCAL + LIVE
+    // =============================
+    const localVideos = LOCAL_VIDEOS[channelId] || [];
+    const merged = mergeFeeds(localVideos, parsed);
+
+    // =============================
+    // CACHE + STICKY UPDATE
+    // =============================
+    setCachedFeed(channelId, merged);
     updateStickyProxy(channelId, proxy);
 
     if (ACTIVE_REQUESTS.get(containerId) !== requestId) return;
 
-    renderFeed(parsed, container);
+    // =============================
+    // RENDER
+    // =============================
+    renderFeed(merged, container);
+
     container.dataset.loading = "0";
     return;
 
@@ -806,38 +827,69 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
 }
 
 function renderFeed(entries, container) {
-
   container.innerHTML = "";
 
-  entries.forEach(item => {
+  const clean = deduplicateVideos(entries);
 
+  clean.forEach(item => {
     const card = createVideo(item);
-
     container.appendChild(card);
 
     if (isNewVideo(item)) {
       allNewVideos.push(item);
     }
+  });
+}
 
+function mergeFeeds(local, remote) {
+  const map = new Map();
+
+  [...local, ...remote].forEach(v => {
+    const id = getVideoId(v.link);
+    if (!id) return;
+
+    const old = map.get(id);
+    if (!old || new Date(v.pubDate) > new Date(old.pubDate)) {
+      map.set(id, v);
+    }
   });
 
+  return Array.from(map.values());
 }
 
 async function loadAll() {
   allNewVideos = [];
+
   document.getElementById("new-videos").innerHTML =
     "<div style='padding:20px'>Lade Inhalte...</div>";
 
+  // 1. LOCAL zuerst rendern
+  ACTIVE_CHANNELS.forEach(ch => {
+    const cached = LOCAL_VIDEOS[ch.channelId] || [];
+    renderFeed(cached, document.getElementById(ch.id));
+  });
+
+  // 2. dann Updates holen (Proxy)
   await Promise.all(
     ACTIVE_CHANNELS.map(ch =>
-      loadChannelFeed(ch.channelId, ch.id)
+      loadChannelFeed(ch.channelId, ch.id, { force: false })
     )
   );
-  allNewVideos.sort((a, b) =>
-    Date.parse(b.pubDate) - Date.parse(a.pubDate)
-  );
+
+  // 3. New Videos neu berechnen
+  updateNewVideosFromDOM();
   renderNewVideos();
   retryFailedRows();
+}
+
+function deduplicateVideos(list) {
+  const seen = new Set();
+  return list.filter(v => {
+    const id = getVideoId(v.link);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }
 
 function retryFailedRows() {
@@ -1739,6 +1791,12 @@ function updateStickyProxy(channelId, proxy) {
       JSON.stringify(Object.fromEntries(CHANNEL_PROXY_MAP))
     );
   }
+}
+
+async function loadLocalVideos() {
+  const res = await fetch("./videos.json");
+  const data = await res.json();
+  return data.channels || {};
 }
 
 /* EVENTS */
