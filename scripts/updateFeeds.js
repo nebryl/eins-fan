@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 const fs = require("fs");
 
 const CHANNELS = [
