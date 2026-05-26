@@ -132,6 +132,7 @@
   <div class="info-left">
     <h3 id="meta-title"></h3>
     <p id="meta-date"></p>
+    <p id="meta-desc"></p>
   </div>
   <a id="like-button" target="_blank" class="like-btn">
     👍 Liken
@@ -637,10 +638,10 @@ function isNewVideo(item) {
 /* CARD */
 function createVideo(item) {
 
-const badge =
-  item.source === "proxy"
-    ? '<div class="badge badge-proxy">LIVE</div>'
-    : '<div class="badge badge-local">LOCAL</div>';
+  const badge =
+    item.source === "live"
+      ? '<div class="badge badge-proxy">LIVE</div>'
+      : '<div class="badge badge-local">LOCAL</div>';
 
   const id = getVideoId(item.link);
   if (!id) return document.createElement("div");
@@ -659,6 +660,7 @@ const badge =
 
   div.dataset.title = item.title;
   div.dataset.date = item.pubDate;
+  div.dataset.source = item.source || "local";
 
   div.innerHTML = `
     <img loading="lazy" src="https://img.youtube.com/vi/${id}/hqdefault.jpg">
@@ -866,6 +868,26 @@ function mergeFeeds(local, remote) {
     }
   });
 
+  local.forEach(v => {
+    v.source = "local";
+    const id = getVideoId(v.link);
+    if (!id) return;
+    const old = map.get(id);
+    if (!old || new Date(v.pubDate) > new Date(old.pubDate)) {
+      map.set(id, v);
+    }
+  });
+
+  remote.forEach(v => {
+    v.source = "live";
+    const id = getVideoId(v.link);
+    if (!id) return;
+    const old = map.get(id);
+    if (!old || new Date(v.pubDate) > new Date(old.pubDate)) {
+      map.set(id, v);
+    }
+  });
+
   return Array.from(map.values());
 }
 
@@ -953,7 +975,13 @@ function openPlayer(id) {
                 }) + " Uhr";
     }
 
-    metaDate.innerText = "Veröffentlicht: " + dateText;
+    const cardSource = card?.dataset?.source || "local";
+
+const sourceLabel =
+  cardSource === "live" ? "LIVE" : "LOCAL";
+
+metaDate.innerText =
+  "Veröffentlicht: " + dateText + " · " + sourceLabel;
     metaBox.style.display = "block";
     const likeBtn = document.getElementById("like-button");
     likeBtn.href = `https://www.youtube.com/watch?v=${currentVideo}`;
