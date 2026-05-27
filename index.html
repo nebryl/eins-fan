@@ -826,14 +826,17 @@ async function loadChannelFeed(channelId, containerId, options = {}) {
     console.warn("Feed failed:", channelId, err);
 
     container.dataset.failed = "1";
-    container.innerHTML = `
-      <div style="padding:20px;color:#aaa;">
-        Laden fehlgeschlagen<br><br>
-        <button onclick="reloadChannel('${channelId}', '${containerId}')">
-          neu versuchen
-        </button>
-      </div>
-    `;
+    if (!container.children.length) {
+      container.innerHTML = `
+        <div style="padding:20px;color:#aaa;">
+          Offline-Modus (videos.json)
+          <br><br>
+          <button onclick="reloadChannel('${channelId}','${containerId}')">
+            neu versuchen
+          </button>
+        </div>
+      `;
+    }
   } finally {
     container.dataset.loading = "0";
     FEED_ABORTS.delete(containerId);
@@ -1834,9 +1837,16 @@ function updateStickyProxy(channelId, proxy) {
 }
 
 async function loadLocalVideos() {
-  const res = await fetch("./videos.json");
-  const data = await res.json();
-  return data.channels || {};
+  try {
+    const res = await fetch("./videos.json");
+    if (!res.ok)
+      throw new Error("videos.json not found");
+    const data = await res.json();
+    return data.channels || {};
+  } catch (e) {
+    console.error("videos.json failed", e);
+    return {};
+  }
 }
 
 /* EVENTS */
