@@ -73,8 +73,15 @@
               data-page="einsflix">
         🎬 Flix
       </button>
-      <button onclick="showPage('football', event)" class="nav-btn" data-page="football">
+      <button onclick="showPage('football', event)" 
+              class="nav-btn" 
+              data-page="football">
         ⚽ Fussball
+      </button>
+      <button onclick="showPage('twitch', event)"
+              class="nav-btn"
+              data-page="twitch">
+        🟣 Twitch
       </button>
       <a href="https://op.gg/de/lol/summoners/euw/nebryl-EUW" class="impressum" target="_blank">
         Impressum
@@ -94,6 +101,13 @@
       </button>
       <span id="welcome">Willkommen <span id="user"></span></span>
       <div class="logout" onclick="logout()">Logout</div>
+    </div>
+  </div>
+
+  <div id="twitchView" class="page">
+    <div class="twitch-layout">
+      <div class="twitch-player"></div>
+      <div class="twitch-chat"></div>
     </div>
   </div>
 
@@ -432,6 +446,7 @@ function showPage(page, e) {
   const pages = {
     einsflix: document.getElementById("einsflixView"),
     football: document.getElementById("footballView"),
+    twitch: document.getElementById("twitchView")
   };
 
   Object.values(pages).forEach(p => {
@@ -454,6 +469,9 @@ function showPage(page, e) {
       window.dispatchEvent(new Event("resize"));
     }, 200);
     loadFootballPage();
+  }
+  if (page === "twitch") {
+    loadTwitchEmbed();
   }
 }
 
@@ -1860,6 +1878,28 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closePlayer();
 });
+
+function loadTwitchEmbed() {
+  const host = window.location.hostname;
+
+  const player = document.querySelector(".twitch-player");
+  const chat = document.querySelector(".twitch-chat");
+
+  if (!player || !chat) return;
+
+  player.innerHTML = `
+    <iframe
+      src="https://player.twitch.tv/?channel=eintrachtspandau&parent=${host}"
+      allowfullscreen>
+    </iframe>
+  `;
+
+  chat.innerHTML = `
+    <iframe
+      src="https://www.twitch.tv/embed/eintrachtspandau/chat?parent=${host}">
+    </iframe>
+  `;
+}
 
 </script>
 

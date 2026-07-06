@@ -1067,3 +1067,38 @@ body::before {
     opacity: 0;
   }
 }
+
+#twitchView {
+  padding-top: 70px; /* Höhe deiner Topbar */
+  box-sizing: border-box;
+  height: 100vh;
+}
+
+.twitch-layout{
+    display:flex;
+    gap:20px;
+    padding:20px;
+    height:calc(100vh - 90px);
+}
+
+.twitch-player{
+    flex:1;
+}
+
+.twitch-player iframe{
+    width:100%;
+    height:100%;
+    border:none;
+    border-radius:12px;
+}
+
+.twitch-chat{
+    width:380px;
+}
+
+.twitch-chat iframe{
+    width:100%;
+    height:100%;
+    border:none;
+    border-radius:12px;
+}
