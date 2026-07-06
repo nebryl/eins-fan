@@ -106,8 +106,19 @@
 
   <div id="twitchView" class="page">
     <div class="twitch-layout">
+
+      <!-- LEFT SIDEBAR -->
+      <div class="twitch-sidebar">
+        <h3>Kanäle</h3>
+        <ul id="twitchChannelList"></ul>
+      </div>
+
+      <!-- PLAYER -->
       <div class="twitch-player"></div>
+
+      <!-- CHAT -->
       <div class="twitch-chat"></div>
+
     </div>
   </div>
 
@@ -319,6 +330,14 @@ const SKINS = {
     required: 1000
   }
 };
+
+const TWITCH_CHANNELS = [
+  { name: "Eins", channel: "eintrachtspandau" },
+  { name: "HOB", channel: "handofblood" },
+  { name: "POE", channel: "powerofevil" }
+];
+
+let currentTwitchChannel = "eintrachtspandau";
 
 let ACTIVE_CHANNELS = [];
 let currentUser = null;
@@ -1897,6 +1916,48 @@ function loadTwitchEmbed() {
   chat.innerHTML = `
     <iframe
       src="https://www.twitch.tv/embed/eintrachtspandau/chat?parent=${host}">
+    </iframe>
+  `;
+}
+
+function renderTwitchChannels() {
+  const list = document.getElementById("twitchChannelList");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  TWITCH_CHANNELS.forEach(ch => {
+    const li = document.createElement("li");
+    li.innerText = ch.name;
+
+    li.onclick = () => {
+      loadTwitchChannel(ch.channel);
+    };
+
+    list.appendChild(li);
+  });
+}
+
+function loadTwitchEmbed() {
+  renderTwitchChannels();
+  loadTwitchChannel(currentTwitchChannel);
+}
+
+function loadTwitchChannel(channel) {
+  currentTwitchChannel = channel;
+
+  const host = window.location.hostname;
+
+  document.querySelector(".twitch-player").innerHTML = `
+    <iframe
+      src="https://player.twitch.tv/?channel=${channel}&parent=${host}&autoplay=true"
+      allowfullscreen>
+    </iframe>
+  `;
+
+  document.querySelector(".twitch-chat").innerHTML = `
+    <iframe
+      src="https://www.twitch.tv/embed/${channel}/chat?parent=${host}">
     </iframe>
   `;
 }

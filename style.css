@@ -1068,37 +1068,105 @@ body::before {
   }
 }
 
+:root {
+  --twitch-topbar-offset: 80px;
+}
+
+/* ===== TWITCH VIEW FIX ===== */
+
 #twitchView {
-  padding-top: 70px; /* Höhe deiner Topbar */
+  height: calc(100vh - var(--twitch-topbar-offset));
+  margin-top: var(--twitch-topbar-offset);
+  padding-top: 10px; /* kleiner Luftabstand unter Topbar */
   box-sizing: border-box;
-  height: 100vh;
 }
 
-.twitch-layout{
-    display:flex;
-    gap:20px;
-    padding:20px;
-    height:calc(100vh - 90px);
+/* Layout stabilisieren */
+.twitch-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: stretch;
 }
 
-.twitch-player{
-    flex:1;
+/* LINKS: Channel Liste */
+.twitch-sidebar {
+  width: 220px;
+  background: #111;
+  padding: 10px;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.twitch-player iframe{
-    width:100%;
-    height:100%;
-    border:none;
-    border-radius:12px;
+.twitch-sidebar h3 {
+  color: white;
+  margin-bottom: 10px;
 }
 
-.twitch-chat{
-    width:380px;
+.twitch-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.twitch-chat iframe{
-    width:100%;
-    height:100%;
-    border:none;
-    border-radius:12px;
+.twitch-sidebar li {
+  padding: 10px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  color: white;
+  border-radius: 6px;
+  background: #1f1f1f;
+  transition: background 0.2s ease;
+}
+
+.twitch-sidebar li:hover {
+  background: #9146ff;
+}
+
+/* PLAYER AREA */
+.twitch-player {
+  flex: 1;
+  display: flex;
+  height: 100%;
+  min-height: 0; /* wichtig gegen overflow bugs */
+}
+
+/* CHAT */
+.twitch-chat {
+  width: 340px;
+  height: 100%;
+  border-left: 1px solid #333;
+  display: flex;
+  box-sizing: border-box;
+}
+
+/* IFRAME FIX */
+.twitch-player iframe,
+.twitch-chat iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* OPTIONAL: bessere mobile Stabilität */
+@media (max-width: 768px) {
+  #twitchView {
+    height: calc(100vh - var(--twitch-topbar-offset));
+    margin-top: var(--twitch-topbar-offset);
+  }
+
+  .twitch-layout {
+    flex-direction: column;
+  }
+
+  .twitch-sidebar {
+    width: 100%;
+    height: 160px;
+  }
+
+  .twitch-chat {
+    width: 100%;
+    height: 300px;
+  }
 }
