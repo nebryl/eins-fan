@@ -503,7 +503,6 @@ function showPage(page, e) {
   }
   if (page === "twitch") {
     loadTwitchStatus();
-    loadTwitchEmbed();
   }
 }
 
@@ -546,21 +545,40 @@ async function startApp() {
 }
 
 window.onload = () => {
+
   try {
 
-    // Wenn nicht eingeloggt → Login zeigen
     if (!isLoggedIn()) {
       document.getElementById("loginView").style.display = "flex";
       return;
     }
 
-    // Wenn eingeloggt → Profile (Presets) zeigen
-    document.getElementById("loginView").style.display = "none";
-    document.getElementById("profileView").style.display = "block";
 
-  } catch (e) {
+    const savedProfile = localStorage.getItem("user");
+
+
+    if (savedProfile) {
+
+      document.getElementById("loginView").style.display = "none";
+      document.getElementById("profileView").style.display = "none";
+
+
+      selectProfile(savedProfile);
+
+    } else {
+
+      document.getElementById("loginView").style.display = "none";
+      document.getElementById("profileView").style.display = "block";
+
+    }
+
+
+  } catch(e) {
+
     console.error(e);
+
   }
+
 };
 
 async function initVideos() {
@@ -1950,14 +1968,14 @@ function loadTwitchChannel(channel) {
 
   document.querySelector(".twitch-player").innerHTML = `
     <iframe
-      src="https://player.twitch.tv/?channel=${channel}&parent=${host}&autoplay=true"
+      src="https://player.twitch.tv/?channel=${channel}&parent=${host}&autoplay=true&theme=dark"
       allowfullscreen>
     </iframe>
   `;
 
   document.querySelector(".twitch-chat").innerHTML = `
     <iframe
-      src="https://www.twitch.tv/embed/${channel}/chat?parent=${host}">
+      src="https://www.twitch.tv/embed/${channel}/chat?parent=${host}&darkpopout">
     </iframe>
   `;
 }
@@ -2001,59 +2019,51 @@ async function loadTwitchStatus() {
 
 function renderTwitchStatus(data) {
 
-  const list =
-    document.getElementById(
-      "twitchChannelList"
-    );
+  const list = document.getElementById("twitchChannelList");
 
   if (!list) return;
 
   list.innerHTML = "";
 
+  // 🔥 automatischer Start des besten Kanals
+  const liveChannel = data.find(c => c.live);
+
+  if (liveChannel) {
+    loadTwitchChannel(liveChannel.login);
+  } else if (data.length) {
+    loadTwitchChannel(data[0].login);
+  }
+
 
   data.forEach(channel => {
 
-    const li =
-      document.createElement("li");
-
+    const li = document.createElement("li");
 
     li.onclick = () => {
-
-      loadTwitchChannel(
-        channel.login
-      );
-
+      loadTwitchChannel(channel.login);
     };
 
-
     li.innerHTML = `
+      <div class="twitch-row">
 
-      <div class="twitch-name">
-        ${channel.name}
-      </div>
+        <span class="twitch-dot ${channel.live ? "live" : "offline"}"></span>
 
-      <div class="twitch-status">
+        <span class="twitch-name">
+          ${channel.name}
+        </span>
 
         ${
           channel.live
-
           ? `
-          🟢 LIVE 
-          ${channel.viewers.toLocaleString()}
-          Zuschauer
+          <span class="twitch-viewers">
+            ${channel.viewers.toLocaleString()}
+          </span>
           `
-
-          :
-
-          `
-          ⚫ Offline
-          `
+          : ""
         }
 
       </div>
-
     `;
-
 
     list.appendChild(li);
 

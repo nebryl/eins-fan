@@ -1170,3 +1170,36 @@ body::before {
     height: 300px;
   }
 }
+
+  .twitch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.twitch-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.twitch-dot.live {
+  background: #00ff55;
+}
+
+.twitch-dot.offline {
+  background: #444;
+}
+
+.twitch-name {
+  flex: 1;
+  color: white;
+  font-weight: bold;
+}
+
+.twitch-viewers {
+  color: #ff3b3b;
+  font-weight: bold;
+}
