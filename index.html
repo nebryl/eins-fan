@@ -1978,6 +1978,8 @@ async function loadTwitchStatus() {
 
     const channels = await res.json();
 
+    TWITCH_DATA = channels;
+
     box.innerHTML = "";
 
     channels.forEach(ch => {
