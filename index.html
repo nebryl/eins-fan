@@ -348,12 +348,11 @@ const TWITCH_CHANNELS = [
 ];
 
 let TWITCH_DATA = [];
-
-let currentTwitchChannel = "eintrachtspandau";
-
+let currentTwitchChannel = null;
 let ACTIVE_CHANNELS = [];
 let currentUser = null;
 let muteInitDone = false;
+let twitchRefreshInterval = null;
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -503,6 +502,7 @@ function showPage(page, e) {
   }
   if (page === "twitch") {
     loadTwitchStatus();
+    startTwitchAutoRefresh();
   }
 }
 
@@ -2017,6 +2017,28 @@ async function loadTwitchStatus() {
 
 }
 
+function startTwitchAutoRefresh() {
+
+  if (twitchRefreshInterval) {
+    clearInterval(twitchRefreshInterval);
+  }
+
+  twitchRefreshInterval = setInterval(() => {
+
+    // nur aktualisieren, wenn Twitch-Seite offen ist
+    const twitchView = document.getElementById("twitchView");
+
+    if (
+      twitchView &&
+      twitchView.classList.contains("active")
+    ) {
+      loadTwitchStatus();
+    }
+
+  }, 60000); // alle 60 Sekunden
+
+}
+
 function renderTwitchStatus(data) {
 
   const list = document.getElementById("twitchChannelList");
@@ -2028,12 +2050,18 @@ function renderTwitchStatus(data) {
   // 🔥 automatischer Start des besten Kanals
   const liveChannel = data.find(c => c.live);
 
-  if (liveChannel) {
-    loadTwitchChannel(liveChannel.login);
-  } else if (data.length) {
-    loadTwitchChannel(data[0].login);
-  }
+  // Player nur einmal initialisieren
+  if (!currentTwitchChannel) {
 
+    const liveChannel = data.find(c => c.live);
+
+    if (liveChannel) {
+      loadTwitchChannel(liveChannel.login);
+    } else if (data.length) {
+      loadTwitchChannel(data[0].login);
+    }
+
+  }
 
   data.forEach(channel => {
 
@@ -2048,19 +2076,26 @@ function renderTwitchStatus(data) {
 
         <span class="twitch-dot ${channel.live ? "live" : "offline"}"></span>
 
-        <span class="twitch-name">
-          ${channel.name}
-        </span>
+        <div class="twitch-info">
+          <div class="twitch-name">
+            ${channel.name}
+          </div>
 
-        ${
-          channel.live
-          ? `
-          <span class="twitch-viewers">
-            ${channel.viewers.toLocaleString()}
-          </span>
-          `
-          : ""
-        }
+          ${
+            channel.live
+            ? `
+            <div class="twitch-viewers">
+              ${channel.viewers.toLocaleString()}
+            </div>
+            `
+            : `
+            <div class="twitch-viewers offline-text">
+              Offline
+            </div>
+            `
+          }
+
+        </div>
 
       </div>
     `;

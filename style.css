@@ -1165,10 +1165,16 @@ body::before {
 
 .twitch-dot.live {
   background: #00ff55;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
 .twitch-dot.offline {
   background: #444;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
 .twitch-name {
@@ -1180,6 +1186,16 @@ body::before {
 .twitch-viewers {
   color: #ff3b3b;
   font-weight: bold;
+}
+
+.twitch-name {
+  font-size: 16px;
+}
+
+.twitch-viewers {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: 3px;
 }
 
 /* OPTIONAL: bessere mobile Stabilität */
