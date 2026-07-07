@@ -1920,7 +1920,7 @@ function renderTwitchChannels() {
   TWITCH_CHANNELS.forEach(ch => {
     const li = document.createElement("li");
     const data = TWITCH_DATA.find(
-      x => x.login === ch.channel
+      x => x.login?.toLowerCase() === ch.channel.toLowerCase()
     );
 
     li.innerHTML = `
@@ -1937,7 +1937,6 @@ function renderTwitchChannels() {
 }
 
 function loadTwitchEmbed() {
-  renderTwitchChannels();
   loadTwitchChannel(currentTwitchChannel);
 }
 
@@ -1978,7 +1977,12 @@ async function loadTwitchStatus() {
 
     const channels = await res.json();
 
-    TWITCH_DATA = channels;
+    TWITCH_DATA = channels.map(ch => ({
+      ...ch,
+      login: ch.login.toLowerCase()
+    }));
+
+    renderTwitchChannels();
 
     box.innerHTML = "";
 
