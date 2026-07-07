@@ -2047,6 +2047,18 @@ function renderTwitchStatus(data) {
 
   list.innerHTML = "";
 
+  data = [...data].sort((a, b) => {
+    // 1. Live-Kanäle zuerst
+    if (a.live && !b.live) return -1;
+    if (!a.live && b.live) return 1;
+    // 2. Bei Live: höchste Viewer zuerst
+    if (a.live && b.live) {
+      return b.viewers - a.viewers;
+    }
+    // 3. Offline alphabetisch
+    return a.name.localeCompare(b.name);
+  });
+
   // 🔥 automatischer Start des besten Kanals
   const liveChannel = data.find(c => c.live);
 
