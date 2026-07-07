@@ -1912,27 +1912,30 @@ window.addEventListener("keydown", (e) => {
 });
 
 function renderTwitchChannels() {
+
+  console.log("RENDER START");
+
   const list = document.getElementById("twitchChannelList");
-  if (!list) return;
+
+  console.log("Liste:", list);
 
   list.innerHTML = "";
 
   TWITCH_CHANNELS.forEach(ch => {
+
+    console.log("Kanal:", ch.name);
+
     const li = document.createElement("li");
-    const data = TWITCH_DATA.find(
-      x => x.login?.toLowerCase() === ch.channel.toLowerCase()
-    );
 
     li.innerHTML = `
-    <div class="twitch-name">${ch.name}</div>
-    <div class="twitch-status">
-    ${data?.live ? "🟣 LIVE " + data.viewers + " Zuschauer" : "⚫ Offline" } </div>`;
-
-    li.onclick = () => {
-      loadTwitchChannel(ch.channel);
-    };
+      <div class="twitch-name">${ch.name}</div>
+      <div class="twitch-status">
+        ⚫ Offline
+      </div>
+    `;
 
     list.appendChild(li);
+
   });
 }
 
@@ -1965,9 +1968,7 @@ const TWITCH_WORKER =
 
 async function loadTwitchStatus() {
 
-  const box = document.getElementById("twitchStatus");
-
-  if (!box) return;
+  console.log("loadTwitchStatus gestartet");
 
   try {
 
@@ -1975,59 +1976,89 @@ async function loadTwitchStatus() {
       TWITCH_WORKER + "/api/twitch/channels"
     );
 
-    const channels = await res.json();
+    if (!res.ok) {
+      throw new Error("Worker Fehler " + res.status);
+    }
 
-    TWITCH_DATA = channels.map(ch => ({
-      ...ch,
-      login: ch.login.toLowerCase()
-    }));
+    const data = await res.json();
 
-    renderTwitchChannels();
+    console.log("Twitch Daten:", data);
 
-    box.innerHTML = "";
+    TWITCH_DATA = data;
 
-    channels.forEach(ch => {
+    renderTwitchStatus(data);
 
-      const div = document.createElement("div");
-
-      div.className = "twitch-status";
-
-      div.innerHTML = `
-
-        <b>${ch.name}</b>
-
-        ${
-          ch.live
-          ? `
-          <span class="live">
-          🟣 LIVE ${ch.viewers}
-          </span>
-          <br>
-          ${ch.game}
-          `
-          :
-          `
-          <span>
-          ⚫ Offline
-          </span>
-          `
-        }
-
-      `;
-
-      box.appendChild(div);
-
-    });
-
-
-  } catch(e) {
+  } catch (err) {
 
     console.error(
-      "Twitch Status Fehler",
-      e
+      "Twitch Status Fehler:",
+      err
     );
 
   }
+
+}
+
+function renderTwitchStatus(data) {
+
+  const list =
+    document.getElementById(
+      "twitchChannelList"
+    );
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+
+  data.forEach(channel => {
+
+    const li =
+      document.createElement("li");
+
+
+    li.onclick = () => {
+
+      loadTwitchChannel(
+        channel.login
+      );
+
+    };
+
+
+    li.innerHTML = `
+
+      <div class="twitch-name">
+        ${channel.name}
+      </div>
+
+      <div class="twitch-status">
+
+        ${
+          channel.live
+
+          ? `
+          🟢 LIVE 
+          ${channel.viewers.toLocaleString()}
+          Zuschauer
+          `
+
+          :
+
+          `
+          ⚫ Offline
+          `
+        }
+
+      </div>
+
+    `;
+
+
+    list.appendChild(li);
+
+  });
+
 }
 
 </script>
