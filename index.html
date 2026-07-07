@@ -110,6 +110,7 @@
       <!-- LEFT SIDEBAR -->
       <div class="twitch-sidebar">
         <h3>Kanäle</h3>
+        <div id="twitchStatus"></div>
         <ul id="twitchChannelList"></ul>
       </div>
 
@@ -332,10 +333,21 @@ const SKINS = {
 };
 
 const TWITCH_CHANNELS = [
-  { name: "Eins", channel: "eintrachtspandau" },
-  { name: "HOB", channel: "handofblood" },
-  { name: "POE", channel: "powerofevil" }
+  { 
+    name: "Eins",
+    channel: "eintrachtspandau"
+  },
+  {
+    name: "HOB",
+    channel: "handofblood"
+  },
+  {
+    name: "POE",
+    channel: "powerofevil"
+  }
 ];
+
+let TWITCH_DATA = [];
 
 let currentTwitchChannel = "eintrachtspandau";
 
@@ -490,6 +502,7 @@ function showPage(page, e) {
     loadFootballPage();
   }
   if (page === "twitch") {
+    loadTwitchStatus();
     loadTwitchEmbed();
   }
 }
@@ -1898,28 +1911,6 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closePlayer();
 });
 
-function loadTwitchEmbed() {
-  const host = window.location.hostname;
-
-  const player = document.querySelector(".twitch-player");
-  const chat = document.querySelector(".twitch-chat");
-
-  if (!player || !chat) return;
-
-  player.innerHTML = `
-    <iframe
-      src="https://player.twitch.tv/?channel=eintrachtspandau&parent=${host}"
-      allowfullscreen>
-    </iframe>
-  `;
-
-  chat.innerHTML = `
-    <iframe
-      src="https://www.twitch.tv/embed/eintrachtspandau/chat?parent=${host}">
-    </iframe>
-  `;
-}
-
 function renderTwitchChannels() {
   const list = document.getElementById("twitchChannelList");
   if (!list) return;
@@ -1928,7 +1919,14 @@ function renderTwitchChannels() {
 
   TWITCH_CHANNELS.forEach(ch => {
     const li = document.createElement("li");
-    li.innerText = ch.name;
+    const data = TWITCH_DATA.find(
+      x => x.login === ch.channel
+    );
+
+    li.innerHTML = `
+    <div class="twitch-name">${ch.name}</div>
+    <div class="twitch-status">
+    ${data?.live ? "🟣 LIVE " + data.viewers + " Zuschauer" : "⚫ Offline" } </div>`;
 
     li.onclick = () => {
       loadTwitchChannel(ch.channel);
@@ -1960,6 +1958,70 @@ function loadTwitchChannel(channel) {
       src="https://www.twitch.tv/embed/${channel}/chat?parent=${host}">
     </iframe>
   `;
+}
+
+const TWITCH_WORKER =
+"https://einsflixworker.nebryl.workers.dev";
+
+
+async function loadTwitchStatus() {
+
+  const box = document.getElementById("twitchStatus");
+
+  if (!box) return;
+
+  try {
+
+    const res = await fetch(
+      TWITCH_WORKER + "/api/twitch/channels"
+    );
+
+    const channels = await res.json();
+
+    box.innerHTML = "";
+
+    channels.forEach(ch => {
+
+      const div = document.createElement("div");
+
+      div.className = "twitch-status";
+
+      div.innerHTML = `
+
+        <b>${ch.name}</b>
+
+        ${
+          ch.live
+          ? `
+          <span class="live">
+          🟣 LIVE ${ch.viewers}
+          </span>
+          <br>
+          ${ch.game}
+          `
+          :
+          `
+          <span>
+          ⚫ Offline
+          </span>
+          `
+        }
+
+      `;
+
+      box.appendChild(div);
+
+    });
+
+
+  } catch(e) {
+
+    console.error(
+      "Twitch Status Fehler",
+      e
+    );
+
+  }
 }
 
 </script>
