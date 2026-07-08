@@ -35,22 +35,9 @@
   </form>
 </div>
 
-<div id="profileView" style="
-  display:none;
-  position:fixed;
-  inset:0;
-  background:#000;
-  z-index:99999;
-  color:white;
-  text-align:center;
-  padding-top:150px;">
+<div id="profileView">
   <h1>Kanäle preset:</h1>
-  <div id="profileList" style="
-    display:flex;
-    gap:30px;
-    justify-content:center;
-    margin-top:40px;">
-  </div>
+  <div id="profileList"></div>
 </div>
 
 <!-- APP -->
@@ -233,9 +220,7 @@
 <div id="iconPicker" class="icon-picker">
   <div class="icon-picker-box">
     <h2>Profilbild auswählen</h2>
-
     <div id="iconChoices"></div>
-
     <button onclick="closeIconPicker()">
       Abbrechen
     </button>
@@ -464,7 +449,8 @@ function isLoggedIn() {
 }
 
 async function createProfile(){
-  const username = localStorage.getItem("loginName");
+
+  let username = prompt("Name für neues Profil:");
   if(!username){
     return;
   }
@@ -472,12 +458,12 @@ async function createProfile(){
     localStorage.getItem("profiles") || "{}"
   );
   if(profiles[username]){
-    localStorage.setItem("user", username);
-    localStorage.setItem("username", username);
-    renderProfiles();
+    alert("Dieses Profil existiert bereits.");
     return;
   }
-  const selectedIcon = await chooseProfileIcon();
+  console.log("Neues Profil gestartet");
+  const selectedIcon = await chooseProfileIcon() || "./pic.png";
+  console.log("Icon gewählt:", selectedIcon);
   profiles[username] = {
     name: username,
     preset:false,
@@ -517,14 +503,32 @@ function deleteProfile(name){
   );
   // gespeicherte Videos entfernen
   Object.keys(localStorage).forEach(key => {
-    if(key.startsWith("vid_" + name + "_")){
+    if(
+      key.startsWith("vid_" + name + "_") ||
+      key === "channels_" + name
+    ){
       localStorage.removeItem(key);
     }
   });
   renderProfiles();
 }
 
+function resetProfileState(){
+  FEED_CACHE.clear();
+  ACTIVE_REQUESTS.clear();
+  FEED_ABORTS.clear();
+  allNewVideos = [];
+  currentVideo = null;
+  ACTIVE_CHANNELS = [];
+  if(player){
+    try{
+      player.stopVideo();
+    }catch(e){}
+  }
+}
+
 function selectProfile(user){
+  resetProfileState();
   const profiles = getProfiles();
   if(!profiles[user]){
     return;
@@ -532,13 +536,6 @@ function selectProfile(user){
   // erst Profil setzen
   localStorage.setItem("user", user);
   localStorage.setItem("username", user);
-  // Eins-Preset immer aktualisieren
-  if(user === "Eins"){
-    localStorage.setItem(
-      "channels_Eins",
-      JSON.stringify(CHANNELS_Default)
-    );
-  }
   ACTIVE_CHANNELS = getUserChannels();
   updateCurrentProfileIcon();
   document.getElementById("profileView").style.display = "none";
@@ -702,7 +699,7 @@ async function startApp() {
   document.getElementById("loginView").style.display = "none";
   document.getElementById("appView").style.display = "block";
   updateCurrentProfileIcon();
-  
+
   showPage("einsflix");
   document.getElementById("einsflixView").classList.add("show");
   
@@ -2317,13 +2314,41 @@ function saveUserChannels(channels){
 
 async function openChannelPicker(){
   const user = localStorage.getItem("user");
-  if (user !== "Eins") {
-    await ensurePersonalProfile();
+  // Eins ist das Preset-Profil:
+  // Beim ersten Ändern ein eigenes Profil erzeugen
+  if (user === "Eins") {
+    const username =
+      localStorage.getItem("loginName");
+    if (!username) return;
+    let profiles =
+      JSON.parse(localStorage.getItem("profiles") || "{}");
+    if (!profiles[username]) {
+      const selectedIcon = await chooseProfileIcon();
+      profiles[username] = {
+        name: username,
+        preset:false,
+        icon:selectedIcon,
+        channels: CHANNELS_Default.slice(0,3)
+      };
+      localStorage.setItem(
+        "profiles",
+        JSON.stringify(profiles)
+      );
+      localStorage.setItem(
+        "channels_" + username,
+        JSON.stringify(CHANNELS_Default.slice(0,3))
+      );
+    }
+    // jetzt auf das eigene Profil wechseln
+    localStorage.setItem("user", username);
+    localStorage.setItem("username", username);
   }
   ACTIVE_CHANNELS = getUserChannels();
   document.getElementById("channelPicker").style.display="block";
   renderAvailableChannels();
+  updateCurrentProfileIcon();
 }
+
 
 function closeChannelPicker(){
   document.getElementById("channelPicker").style.display="none";
@@ -2376,10 +2401,7 @@ function renderAvailableChannels() {
 
 function addUserChannel(channelId){
   const channels = getUserChannels();
-  const exists = channels.some(
-    c => c.channelId === channelId
-  );
-  if (exists) {
+  if (channels.some(c => c.channelId === channelId)) {
     return;
   }
   const channel = AVAILABLE_CHANNELS.find(
@@ -2421,30 +2443,25 @@ function renderProfiles(){
     const card = document.createElement("div");
     card.className = "profile-card";
     card.onclick = () => selectProfile(profile);
-    card.innerHTML = `
-      <img 
-        class="avatar"
-        src="${data.icon || "./pic.png"}"
-      >
 
-      <div class="name">
-        ${data.name}
-      </div>
+    // Bild
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.src = data.icon || "./pic.png";
 
-      ${
-        data.preset
-        ? ""
-        : `
-        <button 
-          class="delete-profile"
-          title="Profil löschen">
-          ✕
-        </button>
-        `
-      }
-    `;
-    const deleteBtn = card.querySelector(".delete-profile");
-    if(deleteBtn){
+    // Name (sicher mit textContent)
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = data.name;
+    card.appendChild(img);
+    card.appendChild(name);
+
+    // Löschen-Button
+    if(!data.preset){
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-profile";
+      deleteBtn.title = "Profil löschen";
+      deleteBtn.textContent = "✕";
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
         const ok = confirm(
@@ -2454,31 +2471,43 @@ function renderProfiles(){
           deleteProfile(profile);
         }
       };
+      card.appendChild(deleteBtn);
     }
     list.appendChild(card);
   });
+
   // ============================
   // NEUES PROFIL KACHEL
   // ============================
   const addCard = document.createElement("div");
   addCard.className = "profile-card add-profile";
   addCard.onclick = () => createProfile();
-  addCard.innerHTML = `
-    <div class="add-icon">
-      +
-    </div>
-
-    <div class="name">
-      Neues Profil
-    </div>
-  `;
+  const addIcon = document.createElement("div");
+  addIcon.className = "add-icon";
+  addIcon.textContent = "+";
+  const addName = document.createElement("div");
+  addName.className = "name";
+  addName.textContent = "Neues Profil";
+  addCard.appendChild(addIcon);
+  addCard.appendChild(addName);
   list.appendChild(addCard);
 }
 
 function chooseProfileIcon(){
+  console.log("chooseProfileIcon wurde aufgerufen");
   return new Promise(resolve => {
+
     const picker = document.getElementById("iconPicker");
+    document.body.appendChild(picker);
+    picker.style.display = "flex";
     const box = document.getElementById("iconChoices");
+
+    if(!picker || !box){
+      console.error("iconPicker fehlt");
+      resolve("./pic.png");
+      return;
+    }
+
     box.innerHTML = "";
     PROFILE_ICONS.forEach(icon => {
       const img = document.createElement("img");
@@ -2488,17 +2517,11 @@ function chooseProfileIcon(){
         picker.style.display = "none";
         resolve(icon);
       };
-
       box.appendChild(img);
     });
-    picker.style.display = "flex";
-    // wichtig
-    document.body.appendChild(picker);
-    picker.style.position = "fixed";
-    picker.style.inset = "0";
-    picker.style.zIndex = "99999999";
   });
 }
+
 
 function closeIconPicker(){
   document.getElementById("iconPicker").style.display="none";
