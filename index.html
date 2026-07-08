@@ -108,6 +108,11 @@
       <div class="hero-banner" id="hero-banner"></div>
     </div>
 
+    <div class="channel-header">
+      <h2>Kanäle bearbeiten </h2>
+      <button class="add-channel-btn" onclick="openChannelPicker()">☰</button>
+    </div>
+
     <div class="row" id="new-videos-row">
       <h2 id="new-videos-title">Neue Videos</h2>
       <div class="row-scroll" id="new-videos"></div>
@@ -120,11 +125,6 @@
 
     <div id="dynamic-rows"></div>
 
-    <div class="channel-header">
-      <h2>Neuer Kanal </h2>
-      <button class="add-channel-btn" onclick="openChannelPicker()">+</button>
-    </div>
-
   </div>
 </div>
 
@@ -135,7 +135,25 @@
       ✕
     </button>
   </div>
-  <div id="availableChannels"></div>
+  <div class="custom-channel-add">
+    <h3>Eigenen YouTube Kanal hinzufügen</h3>
+    <input
+      id="customChannelName"
+      placeholder="Kanalname"
+    >
+    <input
+      id="customChannelId"
+      placeholder="Channel ID (UC...)"
+    >
+    <button onclick="addCustomChannel()">
+      Hinzufügen
+    </button>
+  </div>
+  <hr>
+  <div class="channel-column">
+    <h3>Kanäle</h3>
+    <div id="availableChannels"></div>
+  </div>
 </div>
 
 <!-- OVERLAY + PLAYER -->
@@ -240,6 +258,13 @@ const DEFAULT_USERS = {
   }
 };
 
+let userId = localStorage.getItem("user_id");
+
+if (!userId) {
+  userId = crypto.randomUUID();
+  localStorage.setItem("user_id", userId);
+}
+
 let isMuted = localStorage.getItem("muted") === "true";
 
 let LOCAL_VIDEOS = {};
@@ -251,6 +276,9 @@ const PROXIES = [
   "https://corsproxy.io/?",
   "https://proxy.cors.sh/"
 ];
+
+const EINSFLIX_WORKER =
+"https://einsflixworker.nebryl.workers.dev";
 
 const ACTIVE_HOVER_PLAYERS = new Set();
 const FEED_CACHE = new Map();
@@ -2346,6 +2374,7 @@ async function openChannelPicker(){
   ACTIVE_CHANNELS = getUserChannels();
   document.getElementById("channelPicker").style.display="block";
   renderAvailableChannels();
+  loadCustomChannels();
   updateCurrentProfileIcon();
 }
 
@@ -2354,73 +2383,129 @@ function closeChannelPicker(){
   document.getElementById("channelPicker").style.display="none";
 }
 
-function renderAvailableChannels() {
+async function renderAvailableChannels() {
 
   const container = document.getElementById("availableChannels");
-
   if (!container) return;
-
   container.innerHTML = "";
-
-  // immer den aktuellen Stand laden
   const selectedChannels = getUserChannels();
 
-  AVAILABLE_CHANNELS.forEach(channel => {
+  // globale Liste aus Worker laden
+  const res = await fetch(
+    EINSFLIX_WORKER + "/api/channels"
+  );
 
-    const alreadyAdded = selectedChannels.some(
-      selected =>
-        selected.channelId === channel.channelId ||
-        selected.id === channel.id
+  const globalChannels = await res.json();
+  globalChannels.forEach(channel => {
+    console.log(channel);
+    const selected = selectedChannels.some(
+      c => c.channelId === channel.channel_id
     );
-
-    if (alreadyAdded) {
-      return;
-    }
-
     const item = document.createElement("div");
     item.className = "channel-picker-item";
+    const actionBtn = document.createElement("button");
+    if(selected){
 
+      // aus persönlicher Liste entfernen
+      actionBtn.innerHTML = "−";
+      actionBtn.className = "channel-add-btn";
+
+      actionBtn.onclick = () => {
+        removeUserChannel(channel.channel_id);
+      };
+
+    } else {
+
+      // zur persönlichen Liste hinzufügen
+      actionBtn.innerHTML = "+";
+      actionBtn.className = "channel-remove-btn";
+
+      actionBtn.onclick = () => {
+        addUserChannel(channel.channel_id);
+      };
+    }
     item.innerHTML = `
       <span>${channel.title}</span>
-      <button onclick="addUserChannel('${channel.channelId}')">
-        ➕
-      </button>
     `;
-
+    item.appendChild(actionBtn);
+    // Mülleimer immer anzeigen
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerHTML = "🗑";
+    deleteBtn.className = "channel-delete-btn";
+    if(channel.requested_by  === userId){
+      // eigener Kanal -> löschen erlaubt
+      deleteBtn.title = "Diesen Kanal löschen";
+      deleteBtn.onclick = () => {
+        deleteCustomChannel(channel.channel_id);
+      };
+    } else {
+      // fremder Kanal -> ausgegraut
+      deleteBtn.title = "Du hast diesen Kanal nicht erstellt";
+      deleteBtn.disabled = true;
+      deleteBtn.classList.add("disabled");
+    }
+    item.appendChild(deleteBtn);
     container.appendChild(item);
   });
 
-  if (!container.children.length) {
-    container.innerHTML = `
-      <div style="color:#aaa;padding:20px;">
-        Alle verfügbaren Kanäle sind bereits hinzugefügt.
-      </div>
-    `;
-  }
+
 }
 
-function addUserChannel(channelId){
+async function addUserChannel(channelId){
+
   const channels = getUserChannels();
-  if (channels.some(c => c.channelId === channelId)) {
+
+  if(channels.some(c => c.channelId === channelId)){
     return;
   }
-  const channel = AVAILABLE_CHANNELS.find(
-    c => c.channelId === channelId
+
+  const res = await fetch(
+    EINSFLIX_WORKER + "/api/channels"
   );
-  if (!channel) return;
-  channels.push(channel);
+
+  const globalChannels = await res.json();
+
+  const channel = globalChannels.find(
+    c => c.channel_id === channelId
+  );
+
+  if(!channel) return;
+
+  channels.push({
+    title: channel.title,
+    id: "channel-" + channel.channel_id,
+    channelId: channel.channel_id
+  });
+
   saveUserChannels(channels);
+
   ACTIVE_CHANNELS = getUserChannels();
-  closeChannelPicker();
-  createRows();
-  loadAll();
+
+  await renderAvailableChannels();
+
+  await refreshChannelRows();
+
+  updateNewVideosFromDOM();
 }
 
-function removeUserChannel(channelId) {
-  let userChannels = getUserChannels();
-  userChannels = userChannels.filter(channel => channel.channelId !== channelId);
-  saveUserChannels(userChannels);
-  location.reload();
+
+async function removeUserChannel(channelId){
+
+  let channels = getUserChannels();
+
+  channels = channels.filter(
+    c => c.channelId !== channelId
+  );
+
+  saveUserChannels(channels);
+
+  ACTIVE_CHANNELS = getUserChannels();
+
+  await renderAvailableChannels();
+
+  await refreshChannelRows();
+
+  updateNewVideosFromDOM();
 }
 
 function removeActiveChannel(channelId){
@@ -2538,6 +2623,146 @@ function updateCurrentProfileIcon(){
   const profiles = getProfiles();
   const profile = profiles[currentUser];
   icon.src = profile?.icon || "./pic.png";
+}
+
+async function addCustomChannel(){
+  const title =
+    document.getElementById("customChannelName")
+    .value.trim();
+  const channelId =
+    document.getElementById("customChannelId")
+    .value.trim();
+  if(!channelId.startsWith("UC")){
+    alert("Bitte eine gültige YouTube Channel ID eingeben.");
+    return;
+  }
+  const res = await fetch(
+    EINSFLIX_WORKER + "/api/channels/add",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        title:title || "Neuer Kanal",
+        channel_id:channelId,
+        requested_by: userId
+      })
+    }
+  );
+  const data = await res.json();
+  if(data.success){
+    alert(
+      "Kanal wurde eingereicht."
+    );
+    closeChannelPicker();
+  } else {
+    alert(
+      "Fehler beim Hinzufügen"
+    );
+  }
+}
+
+async function loadCustomChannels(){
+  const box = document.getElementById("customChannels");
+  if(!box) return;
+  box.innerHTML = "<h3>Eigene Kanäle</h3>";
+  try {
+    const res = await fetch(
+      EINSFLIX_WORKER + "/api/channels?user=" + userId
+    );
+    const channels = await res.json();
+    if(!channels.length){
+      box.innerHTML += `
+        <div style="color:#aaa">
+          Keine eigenen Kanäle
+        </div>
+      `;
+      return;
+    }
+    channels.forEach(ch => {
+      const item = document.createElement("div");
+      item.className="channel-picker-item";
+      item.innerHTML = `
+        <span>${ch.title}</span>
+        <button onclick="deleteCustomChannel('${ch.channel_id}')">
+          🗑️
+        </button>
+      `;
+      box.appendChild(item);
+    });
+  } catch(e){
+    console.error(
+      "Custom Channels laden fehlgeschlagen",
+      e
+    );
+  }
+}
+
+async function deleteCustomChannel(channelId){
+  const res = await fetch(
+    EINSFLIX_WORKER + "/api/channels/delete",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        channel_id: channelId,
+        requested_by: userId
+      })
+    }
+  );
+  const data = await res.json();
+  if(data.success){
+    alert("Kanal gelöscht");
+    renderAvailableChannels();
+  } else {
+    alert(
+      data.error || "Löschen nicht erlaubt"
+    );
+  }
+}
+
+function refreshChannelRows(){
+
+  const container = document.getElementById("dynamic-rows");
+
+  container.innerHTML = "";
+
+  ACTIVE_CHANNELS.forEach(ch => {
+
+    const row = document.createElement("div");
+    row.className = "row";
+
+    row.innerHTML = `
+      <h2 class="channel-title">
+        <span>${ch.title}</span>
+
+        <button
+          class="remove-channel"
+          onclick="
+            event.stopPropagation();
+            removeActiveChannel('${ch.channelId}');
+          ">
+          −
+        </button>
+
+      </h2>
+
+      <div class="row-scroll" id="${ch.id}">
+      </div>
+    `;
+
+    container.appendChild(row);
+
+    loadChannelFeed(
+      ch.channelId,
+      ch.id
+    );
+
+  });
+
 }
 
 </script>
