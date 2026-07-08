@@ -11,6 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type"
 };
 
+const CHANNEL_STORE = globalThis.__EINSFLIX_CHANNELS || (globalThis.__EINSFLIX_CHANNELS = []);
 
 export default {
 
@@ -28,6 +29,112 @@ export default {
 
     }
 
+
+    if (url.pathname === "/api/channels/resolve") {
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, 405);
+      }
+
+      try {
+        const body = await request.json();
+        const inputUrl = body?.url?.trim();
+
+        if (!inputUrl) {
+          return jsonResponse({ success: false, error: "Keine URL übergeben." }, 400);
+        }
+
+        const channelData = await resolveYouTubeChannel(inputUrl);
+
+        return jsonResponse({
+          success: true,
+          channel_id: channelData.channelId,
+          title: channelData.title
+        });
+      } catch (error) {
+        console.error("Channel resolve error:", error);
+        return jsonResponse({ success: false, error: error.message || "Kanal konnte nicht aufgelöst werden." }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/channels") {
+      if (request.method === "GET") {
+        const owner = url.searchParams.get("user")?.trim();
+        const channels = owner
+          ? CHANNEL_STORE.filter(channel => channel.requested_by === owner)
+          : CHANNEL_STORE;
+        return jsonResponse(channels);
+      }
+
+      if (request.method === "POST") {
+        return jsonResponse({ success: false, error: "Use /api/channels/add for new entries." }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/channels/add") {
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, 405);
+      }
+
+      try {
+        const body = await request.json();
+        const title = body?.title?.trim() || "Neuer Kanal";
+        const channelId = body?.channel_id?.trim();
+        const requestedBy = body?.requested_by?.trim() || "anonymous";
+
+        if (!channelId) {
+          return jsonResponse({ success: false, error: "Keine Channel ID übergeben." }, 400);
+        }
+
+        const exists = CHANNEL_STORE.some(channel => channel.channel_id === channelId);
+        if (!exists) {
+          CHANNEL_STORE.push({
+            title,
+            channel_id: channelId,
+            requested_by: requestedBy
+          });
+        }
+
+        return jsonResponse({ success: true, channel_id: channelId });
+      } catch (error) {
+        console.error("Channel add error:", error);
+        return jsonResponse({ success: false, error: error.message || "Kanal konnte nicht gespeichert werden." }, 400);
+      }
+    }
+
+    if (url.pathname === "/api/channels/delete") {
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, 405);
+      }
+
+      try {
+        const body = await request.json();
+        const channelId = body?.channel_id?.trim();
+        const requestedBy = body?.requested_by?.trim() || "anonymous";
+
+        if (!channelId) {
+          return jsonResponse({ success: false, error: "Keine Channel ID übergeben." }, 400);
+        }
+
+        const channel = CHANNEL_STORE.find(item => item.channel_id === channelId);
+        if (!channel) {
+          return jsonResponse({ success: false, error: "Kanal nicht gefunden." }, 404);
+        }
+
+        if (channel.requested_by && channel.requested_by !== requestedBy) {
+          return jsonResponse({ success: false, error: "Löschen nicht erlaubt." }, 403);
+        }
+
+        const index = CHANNEL_STORE.findIndex(item => item.channel_id === channelId);
+        if (index >= 0) {
+          CHANNEL_STORE.splice(index, 1);
+        }
+
+        return jsonResponse({ success: true });
+      } catch (error) {
+        console.error("Channel delete error:", error);
+        return jsonResponse({ success: false, error: error.message || "Kanal konnte nicht gelöscht werden." }, 400);
+      }
+    }
 
     if (
       url.pathname === "/api/twitch/channels"
@@ -315,6 +422,47 @@ async function twitchFetch(
 // =====================
 // JSON Response Helper
 // =====================
+
+async function resolveYouTubeChannel(inputUrl) {
+  const url = new URL(inputUrl);
+  const hostname = url.hostname.replace(/^www\./, "");
+
+  if (hostname === "youtu.be") {
+    const id = url.pathname.replace(/^\//, "");
+    if (!id) {
+      throw new Error("Ungültige YouTube URL.");
+    }
+    return { channelId: id, title: "YouTube Kanal" };
+  }
+
+  if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+    const pathParts = url.pathname.split("/").filter(Boolean);
+
+    if (pathParts[0] === "channel" && pathParts[1]) {
+      return { channelId: pathParts[1], title: "YouTube Kanal" };
+    }
+
+    if (pathParts[0] === "user" && pathParts[1]) {
+      const response = await fetch(`https://www.youtube.com/${pathParts[0]}/${pathParts[1]}`);
+      const text = await response.text();
+      const match = text.match(/"channelId":"([A-Za-z0-9_-]+)"/);
+      if (match?.[1]) {
+        return { channelId: match[1], title: "YouTube Kanal" };
+      }
+    }
+
+    if (pathParts[0] === "@" && pathParts[1]) {
+      const response = await fetch(`https://www.youtube.com/${pathParts[0]}${pathParts[1]}`);
+      const text = await response.text();
+      const match = text.match(/"channelId":"([A-Za-z0-9_-]+)"/);
+      if (match?.[1]) {
+        return { channelId: match[1], title: "YouTube Kanal" };
+      }
+    }
+  }
+
+  throw new Error("Die URL konnte nicht als YouTube Kanal erkannt werden.");
+}
 
 function jsonResponse(
   data,

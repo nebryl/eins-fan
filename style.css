@@ -137,6 +137,56 @@ body.skin-citadel {
   transition: 0.2s;
 }
 
+#channelPicker input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg);
+  color: #ddd;
+  outline: none;
+}
+
+#channelPicker input:focus {
+  border-color: #316A7D;
+  box-shadow: 0 0 10px rgba(49,106,125,0.4);
+}
+
+#channelPicker input::placeholder {
+  color: #7a7a7a;
+  opacity: 1;
+}
+
+.custom-channel-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-channel-input-row input {
+  flex: 1;
+}
+
+.custom-channel-input-row .channel-add-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #316A7D;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-channel-input-row .channel-add-btn:hover {
+  background: #2a5564;
+}
+
 #loginView input:focus {
   border-color: #316A7D;
   box-shadow: 0 0 10px rgba(49,106,125,0.4);

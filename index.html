@@ -137,17 +137,15 @@
   </div>
   <div class="custom-channel-add">
     <h3>Eigenen YouTube Kanal hinzufügen</h3>
-    <input
-      id="customChannelName"
-      placeholder="Kanalname"
-    >
-    <input
-      id="customChannelId"
-      placeholder="Channel ID (UC...)"
-    >
-    <button onclick="addCustomChannel()">
-      Hinzufügen
-    </button>
+    <div class="custom-channel-input-row">
+      <input
+        id="customChannelUrl"
+        placeholder="Kanal-URL (z. B. https://www.youtube.com/@name)"
+      >
+      <button class="channel-add-btn" onclick="addCustomChannel()" title="Kanal hinzufügen">
+        +
+      </button>
+    </div>
   </div>
   <hr>
   <div class="channel-column">
@@ -2634,17 +2632,85 @@ function updateCurrentProfileIcon(){
   icon.src = profile?.icon || "./pic.png";
 }
 
+async function resolveChannelInput(channelUrl) {
+  const normalizedChannelUrl = channelUrl.trim();
+
+  if (!normalizedChannelUrl) {
+    throw new Error("Bitte eine YouTube Kanal-URL eingeben.");
+  }
+
+  const directMatch = normalizedChannelUrl.match(/channel\/([A-Za-z0-9_-]+)/i);
+  if (directMatch?.[1]) {
+    return { channelId: directMatch[1] };
+  }
+
+  const handleMatch = normalizedChannelUrl.match(/@([A-Za-z0-9._-]+)/i);
+  const slugMatch = normalizedChannelUrl.match(/\/(?:user|c)\/([^/?#]+)/i);
+  const searchQuery = handleMatch?.[1] || slugMatch?.[1] || normalizedChannelUrl;
+
+  try {
+    const res = await fetch(
+      EINSFLIX_WORKER + "/api/youtube/search?q=" + encodeURIComponent(searchQuery),
+      {
+        method: "GET"
+      }
+    );
+
+    const text = await res.text();
+    let data = null;
+
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      data = null;
+    }
+
+    if (Array.isArray(data)) {
+      const normalize = value => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const query = normalize(searchQuery.replace(/^@/, ""));
+
+      const exactMatch = data.find(item => {
+        const title = normalize(item.title || item.channel_name || "");
+        return title && (title === query || title.includes(query));
+      });
+
+      const preferred = exactMatch || data[0];
+      if (preferred?.channel_id) {
+        return {
+          channelId: preferred.channel_id,
+          title: preferred.title || ""
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("Worker resolve failed, using browser fallback", e);
+  }
+
+  if (handleMatch?.[1]) {
+    const response = await fetch(normalizedChannelUrl, { redirect: "follow" });
+    const html = await response.text();
+    const idMatch = html.match(/"channelId":"([A-Za-z0-9_-]+)"/);
+    if (idMatch?.[1]) {
+      return { channelId: idMatch[1] };
+    }
+  }
+
+  throw new Error("Kanal konnte nicht aus der URL ermittelt werden.");
+}
+
 async function addCustomChannel(){
-  const title =
-    document.getElementById("customChannelName")
+  const channelUrl =
+    document.getElementById("customChannelUrl")
     .value.trim();
-  const channelId =
-    document.getElementById("customChannelId")
-    .value.trim();
-  if(!channelId.startsWith("UC")){
-    alert("Bitte eine gültige YouTube Channel ID eingeben.");
+
+  let resolvedChannel;
+  try {
+    resolvedChannel = await resolveChannelInput(channelUrl);
+  } catch (error) {
+    alert(error.message || "Fehler beim Verarbeiten des Kanals.");
     return;
   }
+
   const ownerName = getOwnerName();
   const res = await fetch(
     EINSFLIX_WORKER + "/api/channels/add",
@@ -2654,8 +2720,8 @@ async function addCustomChannel(){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
-        title:title || "Neuer Kanal",
-        channel_id:channelId,
+        title: resolvedChannel.title || "Neuer Kanal",
+        channel_id: resolvedChannel.channelId,
         requested_by: ownerName
       })
     }
@@ -2668,7 +2734,7 @@ async function addCustomChannel(){
     closeChannelPicker();
   } else {
     alert(
-      "Fehler beim Hinzufügen"
+      data.error || "Fehler beim Hinzufügen"
     );
   }
 }
