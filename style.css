@@ -871,6 +871,7 @@ body::before {
   flex-direction: column;
   align-items: center;
   background: var(--bg);
+  z-index:1000;
 }
 
 .fussballde_widget {
@@ -1218,4 +1219,320 @@ body::before {
     width: 100%;
     height: 300px;
   }
+}
+
+.channel-title {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+
+.remove-channel {
+  background:#333;
+  color:white;
+  border:none;
+  border-radius:50%;
+  width:25px;
+  height:25px;
+  cursor:pointer;
+}
+
+
+.remove-channel:hover {
+  background:#a00;
+}
+
+
+.channel-picker-item {
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:12px;
+  margin:8px 0;
+
+  background:#222;
+  border-radius:8px;
+
+}
+
+.channel-picker {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+
+  background: var(--bg);
+  color: var(--text);
+
+  padding: 30px;
+  padding-top: 45px;
+
+  border-radius: 15px;
+  z-index: 999999;
+
+  width: 400px;
+
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.channel-picker h2 {
+  color: var(--text);
+}
+
+.channel-picker-item {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:12px;
+  margin:8px 0;
+
+  background: color-mix(in srgb, var(--bg), white 8%);
+  color: var(--text);
+
+  border-radius:8px;
+}
+
+.channel-picker-item button {
+  background:#316A7D;
+  color:white;
+  border:none;
+  border-radius:6px;
+  padding:6px 10px;
+  cursor:pointer;
+}
+
+.channel-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.picker-close {
+  position:absolute;
+  top:10px;
+  right:10px;
+
+  width:32px;
+  height:32px;
+
+  border:none;
+  border-radius:50%;
+
+  background:#333;
+  color:white;
+
+  font-size:18px;
+  font-weight:bold;
+
+  cursor:pointer;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  transition:0.2s;
+}
+
+.picker-close:hover {
+  background:#B74F46;
+  transform:scale(1.1);
+}
+
+.channel-picker {
+  display: flex;
+  flex-direction: column;
+
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+
+  width: 400px;
+  padding: 20px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  border-radius: 15px;
+  z-index: 999999;
+
+  border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 20px 50px rgba(0,0,0,0.5);
+}
+
+
+.channel-picker-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  margin-bottom:15px;
+}
+
+
+.channel-picker-header h2 {
+  margin:0;
+}
+
+.picker-close {
+  width:32px;
+  height:32px;
+
+  border:none;
+  border-radius:50%;
+
+  background:#333;
+  color:white;
+
+  font-size:20px;
+  font-weight:bold;
+
+  cursor:pointer;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.avatar {
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid white;
+}
+
+.profile-card {
+  position: relative;
+  width: 130px;
+  height: 150px;
+
+  cursor: pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  background:#111;
+  border-radius:15px;
+  transition:.2s;
+}
+
+
+.profile-card:hover {
+  transform:scale(1.05);
+}
+
+
+.avatar {
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+
+.add-profile {
+  border:2px dashed #777;
+}
+
+
+.add-icon {
+  width:80px;
+  height:80px;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:50px;
+  color:white;
+
+  background:#222;
+}
+
+
+.delete-profile {
+  position:absolute;
+  top:5px;
+  right:5px;
+
+  width:25px;
+  height:25px;
+
+  border-radius:50%;
+  border:none;
+
+  background:#d33;
+  color:white;
+
+  cursor:pointer;
+
+  z-index:10;
+}
+
+.delete-profile:hover {
+  background: #ff5555;
+}
+
+.icon-picker {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+  z-index:2147483647;
+  align-items:center;
+  justify-content:center;
+}
+
+
+.icon-picker-box {
+  background:#111;
+  padding:30px;
+  border-radius:20px;
+  text-align:center;
+  position:relative;
+  z-index:1000001;
+}
+
+
+#iconChoices {
+  display:flex;
+  gap:20px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin:20px;
+}
+
+
+.icon-choice {
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  object-fit:cover;
+  cursor:pointer;
+  border:3px solid transparent;
+}
+
+
+.icon-choice:hover {
+  border-color:white;
+  transform:scale(1.1);
+}
+
+.current-profile-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-sizing: border-box;
 }

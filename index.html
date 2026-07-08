@@ -43,22 +43,13 @@
   z-index:99999;
   color:white;
   text-align:center;
-  padding-top:150px;
-">
+  padding-top:150px;">
   <h1>Kanäle preset:</h1>
-
-  <div style="display:flex; gap:30px; justify-content:center; margin-top:40px;">
-
-    <div class="profile-card" onclick="selectProfile('EinsOnly')">
-      <div class="avatar einsonly"></div>
-      <div class="name">EinsOnly</div>
-    </div>
-
-    <div class="profile-card" onclick="selectProfile('EinsPlus')">
-      <div class="avatar einsplus"></div>
-      <div class="name">EinsPlus</div>
-    </div>
-
+  <div id="profileList" style="
+    display:flex;
+    gap:30px;
+    justify-content:center;
+    margin-top:40px;">
   </div>
 </div>
 
@@ -67,7 +58,7 @@
 
   <div class="topbar">
     <div class="logo" onclick="location.reload()">
-      <img src="./pic.png">
+      <img id="currentProfileIcon" class="current-profile-icon" src="./pic.png">
       <button onclick="showPage('einsflix', event)" 
               class="nav-btn active" 
               data-page="einsflix">
@@ -141,7 +132,23 @@
     </div>
 
     <div id="dynamic-rows"></div>
+
+    <div class="channel-header">
+      <h2>Neuer Kanal </h2>
+      <button class="add-channel-btn" onclick="openChannelPicker()">+</button>
+    </div>
+
   </div>
+</div>
+
+<div id="channelPicker" class="channel-picker" style="display:none;">
+  <div class="channel-picker-header">
+    <h2>Kanal hinzufügen</h2>
+    <button class="picker-close" onclick="closeChannelPicker()">
+      ✕
+    </button>
+  </div>
+  <div id="availableChannels"></div>
 </div>
 
 <!-- OVERLAY + PLAYER -->
@@ -223,11 +230,30 @@
 
 </div>
 
+<div id="iconPicker" class="icon-picker">
+  <div class="icon-picker-box">
+    <h2>Profilbild auswählen</h2>
+
+    <div id="iconChoices"></div>
+
+    <button onclick="closeIconPicker()">
+      Abbrechen
+    </button>
+  </div>
+</div>
+
 <script>
 
 /* ================= LOGIN ================= */
 
 const PASSWORD = "EinsAufDieEins";
+
+const DEFAULT_USERS = {
+  Eins: {
+    name: "Eins",
+    channels: null
+  }
+};
 
 let isMuted = localStorage.getItem("muted") === "true";
 
@@ -251,7 +277,7 @@ const CHANNEL_PROXY_MAP = new Map(
 );
 let colaCount = Number(localStorage.getItem("colaCount") || 0);
 
-const CHANNELS_EinsOnly = [
+const CHANNELS_Default = [
   {
     title: "Eintracht Spandau",
     id: "spandau-videos",
@@ -279,37 +305,43 @@ const CHANNELS_EinsOnly = [
   }
 ];
 
-const CHANNELS_EinsPlus = [
+const AVAILABLE_CHANNELS = [
   {
     title: "Eintracht Spandau",
     id: "spandau-videos",
     channelId: "UC5QM2OXKyZaNw13iLbuEpCg"
   },
+
   {
     title: "Eintracht Spandau League of Legends",
     id: "lol-videos",
     channelId: "UCeM9ckIXeJFvdt4bKpXvTqw"
   },
+
   {
     title: "Eintracht Spandau Fußball",
     id: "fussball-videos",
     channelId: "UCMQkXTIDVvVDh0ZuVB_0APg"
   },
+
   {
     title: "Eintracht Spandau Mediathek",
     id: "media-videos",
     channelId: "UCeuKtCc2Q0ySUxYX8yRZhcg"
   },
+
   {
     title: "Hier is Realtalk",
     id: "realtalk-videos",
     channelId: "UCwqmvII0gjw4Hakc0igdelA"
   },
+
   {
     title: "PowerOfEvil",
     id: "powerofevil-videos",
     channelId: "UCD777FoaysRYNiIxL79Nmlg"
   },
+
   {
     title: "Broeki",
     id: "broeki-videos",
@@ -359,22 +391,57 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
   login();
 });
 
+const PROFILES = {
+  Eins: {
+    name: "Eins",
+    preset: true,
+    icon: "./pic.png",
+    channels: CHANNELS_Default
+  }
+};
+
+const PROFILE_ICONS = [
+  "./pic.png",
+  "./pic1.png",
+  "./pic2.png",
+  "./pic3.png"
+];
+
+function initUsers() {
+  let users = localStorage.getItem("users");
+  if (!users) {
+    localStorage.setItem(
+      "users",
+      JSON.stringify(DEFAULT_USERS)
+    );
+  }
+}
+
+function getProfiles(){
+  const saved =
+    JSON.parse(localStorage.getItem("profiles") || "{}");
+  return {
+    ...PROFILES,
+    ...saved
+  };
+}
+
 function login() {
-
-  const user = document.getElementById("username").value;
   const pass = document.getElementById("password").value.trim();
-
+  const username = document.getElementById("username").value.trim();
   if (pass !== PASSWORD) {
     alert("Falsches Passwort");
     return;
   }
-
-  localStorage.setItem("username", user);
+  if (!username) {
+    alert("Bitte Username eingeben");
+    return;
+  }
   localStorage.setItem("loggedIn", "true");
-
-  // 🔥 statt direkt App → Profile anzeigen
+  localStorage.setItem("loginName", username);
   document.getElementById("loginView").style.display = "none";
   document.getElementById("profileView").style.display = "block";
+  renderProfiles();
 }
 
 function togglePassword() {
@@ -396,25 +463,135 @@ function isLoggedIn() {
   return localStorage.getItem("loggedIn") === "true";
 }
 
-function selectProfile(user) {
+async function createProfile(){
+  const username = localStorage.getItem("loginName");
+  if(!username){
+    return;
+  }
+  let profiles = JSON.parse(
+    localStorage.getItem("profiles") || "{}"
+  );
+  if(profiles[username]){
+    localStorage.setItem("user", username);
+    localStorage.setItem("username", username);
+    renderProfiles();
+    return;
+  }
+  const selectedIcon = await chooseProfileIcon();
+  profiles[username] = {
+    name: username,
+    preset:false,
+    icon:selectedIcon,
+    channels: CHANNELS_Default.slice(0,3)
+  };
+  localStorage.setItem(
+    "profiles",
+    JSON.stringify(profiles)
+  );
+  localStorage.setItem(
+    "channels_" + username,
+    JSON.stringify(CHANNELS_Default.slice(0,3))
+  );
+  renderProfiles();
+}
 
-  let currentProfile = null;
-  currentProfile = user;
+function deleteProfile(name){
+  const profiles = getProfiles();
+  if(!profiles[name]){
+    return;
+  }
+  // Preset schützen
+  if(profiles[name].preset){
+    alert("Dieses Profil kann nicht gelöscht werden.");
+    return;
+  }
+  delete profiles[name];
+  const save = {...profiles};
+  delete save.Eins;
+  localStorage.setItem(
+    "profiles",
+    JSON.stringify(save)
+  );
+  localStorage.removeItem(
+    "channels_" + name
+  );
+  // gespeicherte Videos entfernen
+  Object.keys(localStorage).forEach(key => {
+    if(key.startsWith("vid_" + name + "_")){
+      localStorage.removeItem(key);
+    }
+  });
+  renderProfiles();
+}
 
-  // 🔥 Channel-Logik
-  if (user === "EinsOnly") {
-    ACTIVE_CHANNELS = CHANNELS_EinsOnly;
-  } else if (user === "EinsPlus") {
-    ACTIVE_CHANNELS = CHANNELS_EinsPlus;
-  } else {
-    ACTIVE_CHANNELS = [];
+function selectProfile(user){
+  const profiles = getProfiles();
+  if(!profiles[user]){
+    return;
+  }
+  // erst Profil setzen
+  localStorage.setItem("user", user);
+  localStorage.setItem("username", user);
+  // Eins-Preset immer aktualisieren
+  if(user === "Eins"){
+    localStorage.setItem(
+      "channels_Eins",
+      JSON.stringify(CHANNELS_Default)
+    );
+  }
+  ACTIVE_CHANNELS = getUserChannels();
+  updateCurrentProfileIcon();
+  document.getElementById("profileView").style.display = "none";
+  startApp();
+}
+
+async function ensurePersonalProfile(){
+
+  const username =
+    localStorage.getItem("loginName");
+
+  if(!username) return;
+
+
+  let profiles =
+    JSON.parse(localStorage.getItem("profiles") || "{}");
+
+
+  // Profil existiert bereits
+  if(profiles[username]){
+
+    localStorage.setItem("user", username);
+    localStorage.setItem("username", username);
+    return;
   }
 
-  localStorage.setItem("user", user);
 
-  document.getElementById("profileView").style.display = "none";
+  // 🔥 Profil existiert nicht -> Bild auswählen
+  const selectedIcon = await chooseProfileIcon();
 
-  startApp();
+
+  profiles[username] = {
+    name: username,
+    preset:false,
+    icon:selectedIcon,
+    channels: CHANNELS_Default.slice(0,3)
+  };
+
+
+  localStorage.setItem(
+    "profiles",
+    JSON.stringify(profiles)
+  );
+
+
+  localStorage.setItem(
+    "channels_" + username,
+    JSON.stringify(CHANNELS_Default.slice(0,3))
+  );
+
+
+  localStorage.setItem("user", username);
+  localStorage.setItem("username", username);
 }
 
 function syncMuteOnce() {
@@ -510,6 +687,7 @@ function showPage(page, e) {
 
 async function startApp() {
 
+  ACTIVE_CHANNELS = getUserChannels();
   await initVideos();
 
   const savedSkin = localStorage.getItem("skin") || "skin-white";
@@ -523,7 +701,8 @@ async function startApp() {
 
   document.getElementById("loginView").style.display = "none";
   document.getElementById("appView").style.display = "block";
-
+  updateCurrentProfileIcon();
+  
   showPage("einsflix");
   document.getElementById("einsflixView").classList.add("show");
   
@@ -545,40 +724,18 @@ async function startApp() {
 }
 
 window.onload = () => {
-
   try {
-
+    initUsers();
     if (!isLoggedIn()) {
       document.getElementById("loginView").style.display = "flex";
       return;
     }
-
-
-    const savedProfile = localStorage.getItem("user");
-
-
-    if (savedProfile) {
-
-      document.getElementById("loginView").style.display = "none";
-      document.getElementById("profileView").style.display = "none";
-
-
-      selectProfile(savedProfile);
-
-    } else {
-
-      document.getElementById("loginView").style.display = "none";
-      document.getElementById("profileView").style.display = "block";
-
-    }
-
-
+    document.getElementById("loginView").style.display = "none";
+    document.getElementById("profileView").style.display = "block";
+    renderProfiles();
   } catch(e) {
-
     console.error(e);
-
   }
-
 };
 
 async function initVideos() {
@@ -588,20 +745,36 @@ async function initVideos() {
 function createRows() {
   const container = document.getElementById("dynamic-rows");
   container.innerHTML = "";
-
   ACTIVE_CHANNELS.forEach(ch => {
     const row = document.createElement("div");
     row.className = "row";
-
     row.innerHTML = `
-      <h2 class="reloadable"
+      <h2 class="channel-title">
+        <span class="reloadable"
           data-title="${ch.title}"
-          onclick="reloadChannel('${ch.channelId}', '${ch.id}', this)">
-        ${ch.title}
+          onclick="
+            reloadChannel(
+              '${ch.channelId}',
+              '${ch.id}',
+              this
+            )
+          ">
+          ${ch.title}
+        </span>
+        <button
+          class="remove-channel"
+          onclick="
+          event.stopPropagation();
+          removeActiveChannel('${ch.channelId}');
+          ">
+          −
+        </button>
       </h2>
-      <div class="row-scroll" id="${ch.id}"></div>
+      <div
+        class="row-scroll"
+        id="${ch.id}">
+      </div>
     `;
-
     container.appendChild(row);
   });
 }
@@ -2116,6 +2289,232 @@ function renderTwitchStatus(data) {
 
   });
 
+}
+
+function getUserChannels(){
+  const user = localStorage.getItem("user") || "default";
+  if (user === "Eins") {
+    return CHANNELS_Default;
+  }
+  const saved = localStorage.getItem("channels_" + user);
+  if(saved){
+    return JSON.parse(saved);
+  }
+  saveUserChannels(CHANNELS_Default);
+  return CHANNELS_Default;
+}
+
+function saveUserChannels(channels){
+ const user =
+ localStorage.getItem("user") || "default";
+ localStorage.setItem(
+   "channels_" + user,
+   JSON.stringify(channels)
+ );
+
+}
+
+
+async function openChannelPicker(){
+  const user = localStorage.getItem("user");
+  if (user !== "Eins") {
+    await ensurePersonalProfile();
+  }
+  ACTIVE_CHANNELS = getUserChannels();
+  document.getElementById("channelPicker").style.display="block";
+  renderAvailableChannels();
+}
+
+function closeChannelPicker(){
+  document.getElementById("channelPicker").style.display="none";
+}
+
+function renderAvailableChannels() {
+
+  const container = document.getElementById("availableChannels");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  // immer den aktuellen Stand laden
+  const selectedChannels = getUserChannels();
+
+  AVAILABLE_CHANNELS.forEach(channel => {
+
+    const alreadyAdded = selectedChannels.some(
+      selected =>
+        selected.channelId === channel.channelId ||
+        selected.id === channel.id
+    );
+
+    if (alreadyAdded) {
+      return;
+    }
+
+    const item = document.createElement("div");
+    item.className = "channel-picker-item";
+
+    item.innerHTML = `
+      <span>${channel.title}</span>
+      <button onclick="addUserChannel('${channel.channelId}')">
+        ➕
+      </button>
+    `;
+
+    container.appendChild(item);
+  });
+
+  if (!container.children.length) {
+    container.innerHTML = `
+      <div style="color:#aaa;padding:20px;">
+        Alle verfügbaren Kanäle sind bereits hinzugefügt.
+      </div>
+    `;
+  }
+}
+
+function addUserChannel(channelId){
+  const channels = getUserChannels();
+  const exists = channels.some(
+    c => c.channelId === channelId
+  );
+  if (exists) {
+    return;
+  }
+  const channel = AVAILABLE_CHANNELS.find(
+    c => c.channelId === channelId
+  );
+  if (!channel) return;
+  channels.push(channel);
+  saveUserChannels(channels);
+  ACTIVE_CHANNELS = getUserChannels();
+  closeChannelPicker();
+  createRows();
+  loadAll();
+}
+
+function removeUserChannel(channelId) {
+  let userChannels = getUserChannels();
+  userChannels = userChannels.filter(channel => channel.channelId !== channelId);
+  saveUserChannels(userChannels);
+  location.reload();
+}
+
+function removeActiveChannel(channelId){
+  ensurePersonalProfile();
+  ACTIVE_CHANNELS = ACTIVE_CHANNELS.filter(
+      ch => ch.channelId !== channelId
+    );
+  saveUserChannels(ACTIVE_CHANNELS);
+  createRows();
+  loadAll();
+}
+
+function renderProfiles(){
+  const list = document.getElementById("profileList");
+  if(!list) return;
+  list.innerHTML = "";
+  const profiles = getProfiles();
+  Object.keys(profiles).forEach(profile => {
+    const data = profiles[profile];
+    const card = document.createElement("div");
+    card.className = "profile-card";
+    card.onclick = () => selectProfile(profile);
+    card.innerHTML = `
+      <img 
+        class="avatar"
+        src="${data.icon || "./pic.png"}"
+      >
+
+      <div class="name">
+        ${data.name}
+      </div>
+
+      ${
+        data.preset
+        ? ""
+        : `
+        <button 
+          class="delete-profile"
+          title="Profil löschen">
+          ✕
+        </button>
+        `
+      }
+    `;
+    const deleteBtn = card.querySelector(".delete-profile");
+    if(deleteBtn){
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        const ok = confirm(
+          `Profil "${data.name}" wirklich löschen?\n\nAlle Daten dieses Profils werden entfernt.`
+        );
+        if(ok){
+          deleteProfile(profile);
+        }
+      };
+    }
+    list.appendChild(card);
+  });
+  // ============================
+  // NEUES PROFIL KACHEL
+  // ============================
+  const addCard = document.createElement("div");
+  addCard.className = "profile-card add-profile";
+  addCard.onclick = () => createProfile();
+  addCard.innerHTML = `
+    <div class="add-icon">
+      +
+    </div>
+
+    <div class="name">
+      Neues Profil
+    </div>
+  `;
+  list.appendChild(addCard);
+}
+
+function chooseProfileIcon(){
+  return new Promise(resolve => {
+    const picker = document.getElementById("iconPicker");
+    const box = document.getElementById("iconChoices");
+    box.innerHTML = "";
+    PROFILE_ICONS.forEach(icon => {
+      const img = document.createElement("img");
+      img.src = icon;
+      img.className = "icon-choice";
+      img.onclick = () => {
+        picker.style.display = "none";
+        resolve(icon);
+      };
+
+      box.appendChild(img);
+    });
+    picker.style.display = "flex";
+    // wichtig
+    document.body.appendChild(picker);
+    picker.style.position = "fixed";
+    picker.style.inset = "0";
+    picker.style.zIndex = "99999999";
+  });
+}
+
+function closeIconPicker(){
+  document.getElementById("iconPicker").style.display="none";
+}
+
+function updateCurrentProfileIcon(){
+  const icon = document.getElementById("currentProfileIcon");
+  if(!icon) return;
+  const currentUser = localStorage.getItem("user");
+  if(!currentUser){
+    icon.src = "./pic.png";
+    return;
+  }
+  const profiles = getProfiles();
+  const profile = profiles[currentUser];
+  icon.src = profile?.icon || "./pic.png";
 }
 
 </script>
