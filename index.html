@@ -258,11 +258,9 @@ const DEFAULT_USERS = {
   }
 };
 
-let userId = localStorage.getItem("user_id");
-
-if (!userId) {
-  userId = crypto.randomUUID();
-  localStorage.setItem("user_id", userId);
+function getOwnerName() {
+  // only the name entered at login is considered the canonical owner
+  return localStorage.getItem("loginName") || null;
 }
 
 let isMuted = localStorage.getItem("muted") === "true";
@@ -488,23 +486,22 @@ function isLoggedIn() {
 }
 
 async function createProfile(){
-
-  let username = prompt("Name für neues Profil:");
-  if(!username){
+  let profilName = prompt("Name für neues Profil:");
+  if(!profilName){
     return;
   }
   let profiles = JSON.parse(
     localStorage.getItem("profiles") || "{}"
   );
-  if(profiles[username]){
+  if(profiles[profilName]){
     alert("Dieses Profil existiert bereits.");
     return;
   }
   console.log("Neues Profil gestartet");
   const selectedIcon = await chooseProfileIcon() || "./pic.png";
   console.log("Icon gewählt:", selectedIcon);
-  profiles[username] = {
-    name: username,
+  profiles[profilName] = {
+    name: profilName,
     preset:false,
     icon:selectedIcon,
     channels: CHANNELS_Default.slice(0,3)
@@ -514,7 +511,7 @@ async function createProfile(){
     JSON.stringify(profiles)
   );
   localStorage.setItem(
-    "channels_" + username,
+    "channels_" + profilName,
     JSON.stringify(CHANNELS_Default.slice(0,3))
   );
   renderProfiles();
@@ -572,9 +569,8 @@ function selectProfile(user){
   if(!profiles[user]){
     return;
   }
-  // erst Profil setzen
+  // erst Profil setzen (nicht `loginName` überschreiben)
   localStorage.setItem("user", user);
-  localStorage.setItem("username", user);
   ACTIVE_CHANNELS = getUserChannels();
   updateCurrentProfileIcon();
   document.getElementById("profileView").style.display = "none";
@@ -597,7 +593,6 @@ async function ensurePersonalProfile(){
   if(profiles[username]){
 
     localStorage.setItem("user", username);
-    localStorage.setItem("username", username);
     return;
   }
 
@@ -627,7 +622,6 @@ async function ensurePersonalProfile(){
 
 
   localStorage.setItem("user", username);
-  localStorage.setItem("username", username);
 }
 
 function syncMuteOnce() {
@@ -742,10 +736,10 @@ async function startApp() {
   showPage("einsflix");
   document.getElementById("einsflixView").classList.add("show");
   
-  const username = localStorage.getItem("username") || "User";
+  const loginName = localStorage.getItem("loginName") || "User";
 
   document.getElementById("welcome").innerText =
-    "Willkommen " + username;
+    "Willkommen " + loginName;
 
   allNewVideos = [];
 
@@ -2381,9 +2375,8 @@ async function openChannelPicker(){
         JSON.stringify(CHANNELS_Default.slice(0,3))
       );
     }
-    // jetzt auf das eigene Profil wechseln
+    // jetzt auf das eigene Profil wechseln (loginName nicht überschreiben)
     localStorage.setItem("user", username);
-    localStorage.setItem("username", username);
   }
   ACTIVE_CHANNELS = getUserChannels();
   document.getElementById("channelPicker").style.display="block";
@@ -2446,7 +2439,9 @@ async function renderAvailableChannels() {
     const deleteBtn = document.createElement("button");
     deleteBtn.innerHTML = "🗑";
     deleteBtn.className = "channel-delete-btn";
-    if(channel.requested_by  === userId){
+    // ownership is based on loginName (the user who submitted the channel)
+    const ownerName = getOwnerName();
+    if(channel.requested_by === ownerName){
       // eigener Kanal -> löschen erlaubt
       deleteBtn.title = "Diesen Kanal löschen";
       deleteBtn.onclick = () => {
@@ -2650,6 +2645,7 @@ async function addCustomChannel(){
     alert("Bitte eine gültige YouTube Channel ID eingeben.");
     return;
   }
+  const ownerName = getOwnerName();
   const res = await fetch(
     EINSFLIX_WORKER + "/api/channels/add",
     {
@@ -2660,7 +2656,7 @@ async function addCustomChannel(){
       body:JSON.stringify({
         title:title || "Neuer Kanal",
         channel_id:channelId,
-        requested_by: userId
+        requested_by: ownerName
       })
     }
   );
@@ -2682,8 +2678,9 @@ async function loadCustomChannels(){
   if(!box) return;
   box.innerHTML = "<h3>Eigene Kanäle</h3>";
   try {
+    const ownerName = getOwnerName();
     const res = await fetch(
-      EINSFLIX_WORKER + "/api/channels?user=" + userId
+      EINSFLIX_WORKER + "/api/channels?user=" + encodeURIComponent(ownerName || "")
     );
     const channels = await res.json();
     if(!channels.length){
@@ -2714,6 +2711,7 @@ async function loadCustomChannels(){
 }
 
 async function deleteCustomChannel(channelId){
+  const ownerName = getOwnerName();
   const res = await fetch(
     EINSFLIX_WORKER + "/api/channels/delete",
     {
@@ -2723,7 +2721,7 @@ async function deleteCustomChannel(channelId){
       },
       body:JSON.stringify({
         channel_id: channelId,
-        requested_by: userId
+        requested_by: ownerName
       })
     }
   );
