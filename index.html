@@ -466,9 +466,20 @@ function togglePassword() {
 }
 
 function logout() {
+  // remove all login-related keys to ensure a clean logout
   localStorage.removeItem("loggedIn");
+  localStorage.removeItem("loginName");
   localStorage.removeItem("username");
   localStorage.removeItem("user");
+
+  // explicitly show the login view (avoid relying on a reload)
+  try {
+    document.getElementById("profileView").style.display = "none";
+    document.getElementById("appView").style.display = "none";
+    document.getElementById("loginView").style.display = "flex";
+  } catch (e) {}
+
+  // reload to reset any in-memory state
   location.reload();
 }
 
@@ -753,6 +764,9 @@ window.onload = () => {
     initUsers();
     if (!isLoggedIn()) {
       document.getElementById("loginView").style.display = "flex";
+      // sicherstellen, dass die Profil-Auswahl ausgeblendet ist,
+      // sonst überdeckt sie den Login-Screen (fixed z-index)
+      try { document.getElementById("profileView").style.display = "none"; } catch(e) {}
       return;
     }
     document.getElementById("loginView").style.display = "none";
