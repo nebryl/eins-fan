@@ -1264,13 +1264,28 @@ body::before {
   }
 }
 
+.channel-row-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+
 .channel-title {
   display:flex;
   align-items:center;
   gap:10px;
+  margin:0;
 }
 
+.channel-order-controls {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
 
+.channel-order-btn,
 .remove-channel {
   background:#333;
   color:white;
@@ -1279,8 +1294,15 @@ body::before {
   width:25px;
   height:25px;
   cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
 }
 
+.channel-order-btn:hover {
+  background:#316A7D;
+}
 
 .remove-channel:hover {
   background:#a00;

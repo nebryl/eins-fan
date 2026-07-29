@@ -773,41 +773,26 @@ async function initVideos() {
   LOCAL_VIDEOS = await loadLocalVideos();
 }
 
+function moveChannelOrder(channelId, direction) {
+  const index = ACTIVE_CHANNELS.findIndex(ch => ch.channelId === channelId);
+  if (index === -1) return;
+
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= ACTIVE_CHANNELS.length) return;
+
+  const reordered = [...ACTIVE_CHANNELS];
+  const [movedChannel] = reordered.splice(index, 1);
+  reordered.splice(targetIndex, 0, movedChannel);
+
+  ACTIVE_CHANNELS = reordered;
+  saveUserChannels(ACTIVE_CHANNELS);
+
+  refreshChannelRows();
+  updateNewVideosFromDOM();
+}
+
 function createRows() {
-  const container = document.getElementById("dynamic-rows");
-  container.innerHTML = "";
-  ACTIVE_CHANNELS.forEach(ch => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <h2 class="channel-title">
-        <span class="reloadable"
-          data-title="${ch.title}"
-          onclick="
-            reloadChannel(
-              '${ch.channelId}',
-              '${ch.id}',
-              this
-            )
-          ">
-          ${ch.title}
-        </span>
-        <button
-          class="remove-channel"
-          onclick="
-          event.stopPropagation();
-          removeActiveChannel('${ch.channelId}');
-          ">
-          −
-        </button>
-      </h2>
-      <div
-        class="row-scroll"
-        id="${ch.id}">
-      </div>
-    `;
-    container.appendChild(row);
-  });
+  refreshChannelRows();
 }
 
 /* ================= PROGRESS STORAGE ================= */
@@ -2324,15 +2309,24 @@ function renderTwitchStatus(data) {
 
 function getUserChannels(){
   const user = localStorage.getItem("user") || "default";
-  if (user === "Eins") {
-    return CHANNELS_Default;
-  }
   const saved = localStorage.getItem("channels_" + user);
-  if(saved){
-    return JSON.parse(saved);
+
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn("Kanal-Order konnte nicht gelesen werden:", e);
+    }
   }
-  saveUserChannels(CHANNELS_Default);
-  return CHANNELS_Default;
+
+  const fallbackChannels = CHANNELS_Default.map(ch => ({ ...ch }));
+
+  if (user === "Eins") {
+    return fallbackChannels;
+  }
+
+  saveUserChannels(fallbackChannels);
+  return fallbackChannels;
 }
 
 function saveUserChannels(channels){
@@ -2802,45 +2796,80 @@ async function deleteCustomChannel(channelId){
   }
 }
 
-function refreshChannelRows(){
-
+function refreshChannelRows() {
   const container = document.getElementById("dynamic-rows");
+  if (!container) return;
 
   container.innerHTML = "";
 
   ACTIVE_CHANNELS.forEach(ch => {
-
     const row = document.createElement("div");
     row.className = "row";
 
-    row.innerHTML = `
-      <h2 class="channel-title">
-        <span>${ch.title}</span>
+    const header = document.createElement("div");
+    header.className = "channel-row-header";
 
-        <button
-          class="remove-channel"
-          onclick="
-            event.stopPropagation();
-            removeActiveChannel('${ch.channelId}');
-          ">
-          −
-        </button>
+    const title = document.createElement("h2");
+    title.className = "channel-title";
 
-      </h2>
+    const titleText = document.createElement("span");
+    titleText.className = "reloadable";
+    titleText.dataset.title = ch.title;
+    titleText.textContent = ch.title;
+    titleText.onclick = (event) => {
+      event.stopPropagation();
+      reloadChannel(ch.channelId, ch.id, titleText);
+    };
 
-      <div class="row-scroll" id="${ch.id}">
-      </div>
-    `;
+    const controls = document.createElement("div");
+    controls.className = "channel-order-controls";
+
+    const upBtn = document.createElement("button");
+    upBtn.className = "channel-order-btn";
+    upBtn.title = "Nach oben";
+    upBtn.textContent = "▲";
+    upBtn.onclick = (event) => {
+      event.stopPropagation();
+      moveChannelOrder(ch.channelId, -1);
+    };
+
+    const downBtn = document.createElement("button");
+    downBtn.className = "channel-order-btn";
+    downBtn.title = "Nach unten";
+    downBtn.textContent = "▼";
+    downBtn.onclick = (event) => {
+      event.stopPropagation();
+      moveChannelOrder(ch.channelId, 1);
+    };
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "remove-channel";
+    removeBtn.title = "Kanal entfernen";
+    removeBtn.textContent = "−";
+    removeBtn.onclick = (event) => {
+      event.stopPropagation();
+      removeActiveChannel(ch.channelId);
+    };
+
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    controls.appendChild(removeBtn);
+
+    title.appendChild(titleText);
+    header.appendChild(title);
+    header.appendChild(controls);
+
+    row.appendChild(header);
+
+    const scroll = document.createElement("div");
+    scroll.className = "row-scroll";
+    scroll.id = ch.id;
+    row.appendChild(scroll);
 
     container.appendChild(row);
 
-    loadChannelFeed(
-      ch.channelId,
-      ch.id
-    );
-
+    loadChannelFeed(ch.channelId, ch.id);
   });
-
 }
 
 </script>
