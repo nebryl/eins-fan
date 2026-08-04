@@ -51,6 +51,11 @@
               data-page="einsflix">
         🎬 Flix
       </button>
+      <button onclick="showPage('lol', event)" 
+              class="nav-btn" 
+              data-page="lol">
+        🎮 LoL
+      </button>
       <button onclick="showPage('football', event)" 
               class="nav-btn" 
               data-page="football">
@@ -79,6 +84,33 @@
       </button>
       <span id="welcome">Willkommen <span id="user"></span></span>
       <div class="logout" onclick="logout()">Logout</div>
+    </div>
+  </div>
+
+  <div id="lolView" class="page">
+    <div class="hero-section" id="lol-hero-row">
+      <div class="hero-banner" id="lol-hero-banner"></div>
+    </div>
+
+    <div class="container">
+      <div class="row">
+        <h2>Eintracht Spandau League of Legends</h2>
+        <div class="row-scroll" id="lol-page-videos"></div>
+      </div>
+
+      <div class="row">
+        <h2>Eintracht Spandau LoL</h2>
+        <div id="lol-next-match" class="card">
+          <p>Lade Eintracht-Spandau-Daten...</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <h2>Prime League Tabelle</h2>
+        <div id="lol-table" class="card table-card">
+          <p>Lade Tabelle...</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -671,6 +703,14 @@ function forceMuteState() {
   }
 }
 
+function stopTwitchPlayer() {
+  const player = document.querySelector(".twitch-player");
+  const chat = document.querySelector(".twitch-chat");
+  if (player) player.innerHTML = "";
+  if (chat) chat.innerHTML = "";
+  currentTwitchChannel = null;
+}
+
 function showPage(page, e) {
   if (e) e.stopPropagation();
 
@@ -680,6 +720,7 @@ function showPage(page, e) {
 
   const pages = {
     einsflix: document.getElementById("einsflixView"),
+    lol: document.getElementById("lolView"),
     football: document.getElementById("footballView"),
     twitch: document.getElementById("twitchView")
   };
@@ -691,6 +732,10 @@ function showPage(page, e) {
 
   const target = pages[page];
   if (!target) return;
+
+  if (page !== "twitch") {
+    stopTwitchPlayer();
+  }
 
   target.classList.add("active");
 
@@ -704,6 +749,9 @@ function showPage(page, e) {
       window.dispatchEvent(new Event("resize"));
     }, 200);
     loadFootballPage();
+  }
+  if (page === "lol") {
+    loadLolPage();
   }
   if (page === "twitch") {
     loadTwitchStatus();
@@ -1967,8 +2015,351 @@ function loadFootballHeroFromFeed() {
   });
 }
 
-function loadIconTiles() {
+function renderLolHero(item) {
+  const hero = document.getElementById("lol-hero-banner");
+  if (!hero || !item) return;
 
+  const id = getVideoId(item.link);
+
+  hero.innerHTML = `
+    <img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg"
+      onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'">
+
+    <div class="hero-info">
+      <h1>${item.title}</h1>
+    </div>
+  `;
+
+  hero.onclick = () => openPlayer(id);
+}
+
+function loadLolHeroFromFeed() {
+  const container = document.getElementById("lol-page-videos");
+  if (!container) return;
+
+  const firstCard = container.querySelector(".video");
+  if (!firstCard) return;
+
+  const img = firstCard.querySelector("img")?.src;
+  const title = firstCard.querySelector("span")?.innerText || "Eintracht Spandau League of Legends";
+
+  const match = img?.match(/vi\/(.+?)\//);
+  if (!match) return;
+
+  renderLolHero({
+    link: "https://youtube.com/watch?v=" + match[1],
+    title
+  });
+}
+
+function loadLolPage() {
+  const nextMatchBox = document.getElementById("lol-next-match");
+  const tableBox = document.getElementById("lol-table");
+
+  if (!nextMatchBox || !tableBox) return;
+
+  nextMatchBox.innerHTML = "<p>Lade Eintracht Spandau Spiel...</p>";
+  tableBox.innerHTML = "<p>Lade Tabelle...</p>";
+  loadChannelFeed("UCeM9ckIXeJFvdt4bKpXvTqw", "lol-page-videos");
+  setTimeout(loadLolHeroFromFeed, 1200);
+
+  fetch("./primeleague.json")
+    .then(res => res.json())
+    .then(data => {
+      const html = data.body || "";
+      const clean = html
+        .replace(/\t/g, " ")
+        .replace(/\r/g, " ")
+        .replace(/\n+/g, "\n");
+
+      const nextMatch = parseNextSpandauMatch(clean);
+      const tableHtml = parseSpandauTable(clean);
+
+      if (nextMatch) {
+        nextMatchBox.innerHTML = `
+          <div class="lol-next-match-card">
+            <h3>Nächstes Spiel</h3>
+            <p><strong>${nextMatch.opponent}</strong></p>
+            <p>${nextMatch.date}</p>
+            <p>${nextMatch.time}</p>
+            <p>${nextMatch.stage || "Prime League"}</p>
+          </div>
+        `;
+      } else {
+        nextMatchBox.innerHTML = "<p>Kein nächstes Spiel gefunden.</p>";
+      }
+
+      tableBox.innerHTML = tableHtml || "<p>Keine Tabelle gefunden.</p>";
+    })
+    .catch(err => {
+      console.error(err);
+      const msg = "Fehler beim Laden der Prime League Daten.";
+      if (nextMatchBox) nextMatchBox.innerHTML = `<p>${msg}</p>`;
+      if (tableBox) tableBox.innerHTML = `<p>${msg}</p>`;
+    });
+}
+
+function parseNextSpandauMatch(text) {
+  const scheduleStart = text.indexOf("Alle Spiele anzeigen");
+  const scheduleEnd = scheduleStart !== -1 ? text.indexOf("Der Summer Split wird", scheduleStart) : -1;
+  const scheduleText = scheduleStart !== -1
+    ? text.slice(scheduleStart, scheduleEnd !== -1 ? scheduleEnd : scheduleStart + 20000)
+    : text;
+
+  const dateRegex = /^\d{2}\.\d{2}\.(?:\d{4})?$/;
+  const timeRegex = /^\d{1,2}:\d{2}$/;
+  const skipWords = new Set([
+    "Alle Spiele anzeigen",
+    "best of three",
+    "LIVE",
+    "Deutschland",
+    "Score"
+  ]);
+
+  const isTeamLine = line => {
+    if (!line) return false;
+    if (dateRegex.test(line)) return false;
+    if (timeRegex.test(line)) return false;
+    if (/^\d+[\.\d]*$/.test(line)) return false;
+    if (skipWords.has(line)) return false;
+    return true;
+  };
+
+  const parseDate = (dateText, timeText) => {
+    const fullDate = dateText.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    let day, month, year;
+
+    if (fullDate) {
+      day = Number(fullDate[1]);
+      month = Number(fullDate[2]);
+      year = Number(fullDate[3]);
+    } else {
+      const shortDate = dateText.match(/^(\d{2})\.(\d{2})\.$/);
+      if (!shortDate) return null;
+      day = Number(shortDate[1]);
+      month = Number(shortDate[2]);
+      year = new Date().getFullYear();
+      if (month < new Date().getMonth() + 1 - 6) {
+        year += 1;
+      }
+    }
+
+    let hours = 0;
+    let minutes = 0;
+    if (timeText && timeRegex.test(timeText)) {
+      [hours, minutes] = timeText.split(":").map(Number);
+    }
+
+    return {
+      date: new Date(year, month - 1, day, hours, minutes),
+      dateText: `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${year}`,
+      timeText: timeText || "Zeit unbekannt"
+    };
+  };
+
+  const blocks = scheduleText
+    .split(/L1 Sum '26/)
+    .map(block => block
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+    )
+    .filter(block => block.length > 0);
+
+  const matches = [];
+  for (const block of blocks) {
+    const dateLine = block.find(line => dateRegex.test(line));
+    const timeLine = block.find(line => timeRegex.test(line));
+    if (!dateLine || !timeLine) continue;
+
+    const teams = block.filter(line => isTeamLine(line));
+    if (teams.length < 2) continue;
+
+    const parsed = parseDate(dateLine, timeLine);
+    if (!parsed) continue;
+
+    matches.push({
+      team1: teams[0],
+      team2: teams[1],
+      date: parsed.dateText,
+      time: parsed.timeText,
+      datetime: parsed.date,
+      stage: "Prime League"
+    });
+  }
+
+  const spandauMatches = matches.filter(m =>
+    /^(EINS|Eintracht Spandau)$/i.test(m.team1) ||
+    /^(EINS|Eintracht Spandau)$/i.test(m.team2)
+  );
+
+  if (!spandauMatches.length) return null;
+
+  const now = new Date();
+  const futureMatches = spandauMatches
+    .filter(m => m.datetime >= now)
+    .sort((a, b) => a.datetime - b.datetime);
+
+  const bestMatch = futureMatches.length
+    ? futureMatches[0]
+    : spandauMatches.sort((a, b) => a.datetime - b.datetime)[0];
+
+  const opponent = /^(EINS|Eintracht Spandau)$/i.test(bestMatch.team1)
+    ? bestMatch.team2
+    : bestMatch.team1;
+
+  return {
+    opponent,
+    date: bestMatch.date,
+    time: bestMatch.time,
+    stage: bestMatch.stage
+  };
+}
+
+function parseSpandauTable(text) {
+  const tableStart = text.indexOf("Gruppe 1");
+  if (tableStart === -1) return "<p>Tabellen-Daten nicht gefunden.</p>";
+
+  const endMarkers = ["Playoffs (Upper Bracket)", "Spieltag 1", "Team 1"];
+  let tableEnd = -1;
+  for (const marker of endMarkers) {
+    const pos = text.indexOf(marker, tableStart + 1);
+    if (pos !== -1 && (tableEnd === -1 || pos < tableEnd)) {
+      tableEnd = pos;
+    }
+  }
+
+  const tableText = text.slice(tableStart, tableEnd !== -1 ? tableEnd : tableStart + 15000);
+  const lines = tableText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  const skipLines = new Set(["Gruppe 1", "Gruppe 2", "#", "Team", "R", "LP", "P", "Deutschland"]);
+  const rows = [];
+  let current = null;
+
+  const pushRow = () => {
+    if (current && current.rank && current.teamShort) {
+      rows.push({
+        rank: current.rank,
+        team: current.teamLong || current.teamShort,
+        record: current.record || "-",
+        lp: current.lp || "-",
+        points: current.points || "-"
+      });
+    }
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^\d+\.$/.test(line)) {
+      pushRow();
+      current = { rank: line, teamShort: null, teamLong: null, record: null, lp: null, points: null };
+      continue;
+    }
+    if (!current || skipLines.has(line)) continue;
+
+    if (!current.teamShort) {
+      current.teamShort = line;
+      continue;
+    }
+
+    if (!current.teamLong && !/^\d+-\d+/.test(line) && !/^\d+$/.test(line)) {
+      current.teamLong = line;
+      continue;
+    }
+
+    const parts = line.split(/\s+/).filter(Boolean);
+    if (parts.length && /^\d+-\d+$/.test(parts[0])) {
+      const [wins, losses] = parts[0].split("-");
+      if (losses.length > 1) {
+        current.record = `${wins}-${losses.slice(0, -1)}`;
+        current.lp = losses.slice(-1);
+      } else {
+        current.record = parts[0];
+      }
+
+      if (parts.length === 2) {
+        current.points = parts[1];
+      } else if (parts.length >= 3) {
+        current.lp = current.lp || parts[1];
+        current.points = parts[2];
+      }
+      continue;
+    }
+
+    if (!current.points && /^\d+$/.test(line)) {
+      current.points = line;
+    }
+  }
+  pushRow();
+
+  if (!rows.length) return "<p>Keine Tabellendaten gefunden.</p>";
+
+  return `
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Team</th><th>R</th><th>LP</th><th>P</th></tr>
+        </thead>
+        <tbody>
+          ${rows.slice(0, 10).map(r => `
+            <tr>
+              <td>${r.rank}</td>
+              <td>${r.team}</td>
+              <td>${r.record}</td>
+              <td>${r.lp}</td>
+              <td>${r.points}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function parseSpandauSchedule(text) {
+  const scheduleStart = text.indexOf("Spieltag 1");
+  if (scheduleStart === -1) return "<p>Kein Spielplan gefunden.</p>";
+
+  const scheduleText = text.slice(scheduleStart, scheduleStart + 20000);
+  const lines = scheduleText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const matchRows = [];
+
+  for (let i = 0; i < lines.length - 3; i += 1) {
+    const team1 = lines[i];
+    const scoreLabel = lines[i + 1];
+    const score = lines[i + 2];
+    const team2 = lines[i + 3];
+
+    if (
+      team1 &&
+      scoreLabel === "Score" &&
+      /^[0-9]+:[0-9]+$/.test(score) &&
+      team2 &&
+      team2 !== "Team 2" &&
+      team2 !== "Status"
+    ) {
+      matchRows.push({ team1, score, team2 });
+      i += 3;
+    }
+  }
+
+  if (!matchRows.length) return "<p>Keine Spielplan-Daten gefunden.</p>";
+
+  return `
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr><th>Team 1</th><th>Ergebnis</th><th>Team 2</th></tr>
+        </thead>
+        <tbody>
+          ${matchRows.map(r => `<tr><td>${r.team1}</td><td>${r.score}</td><td>${r.team2}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function loadIconTiles() {
   const box = document.getElementById("icon-videos");
   if (!box) return;
 
