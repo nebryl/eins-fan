@@ -1,16 +1,13 @@
-const fs = require("fs");
+import fs from "fs";
 
-async function main() {
-
-  const result = {
-    updated: new Date().toISOString(),
-    status: "test"
-  };
-
-  fs.writeFileSync(
-    "data/primeleague.json",
-    JSON.stringify(result, null, 2)
-  );
-}
-
-main();
+fs.writeFileSync(
+  "data/primeleague.json",
+  JSON.stringify(
+    {
+      updated: new Date().toISOString(),
+      status: "ok"
+    },
+    null,
+    2
+  )
+);
