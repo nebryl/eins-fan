@@ -3,6 +3,10 @@ name: Update Prime League
 on:
   workflow_dispatch:
 
+  push:
+    branches:
+      - main
+
 permissions:
   contents: write
 
@@ -11,19 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - run: node scripts/scrape-primeleague.js
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Commit
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+      - name: Run Script
+        run: node scripts/scrape-primeleague.js
 
-          git add .
-          git commit -m "update data" || exit 0
-          git push
+      - name: Commit JSON
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: update primeleague
+          file_pattern: data/primeleague.json
