@@ -8,23 +8,27 @@ const browser = await chromium.launch({
 const page = await browser.newPage();
 
 await page.goto(
-  "https://www.primeleague.gg/de",
+  "https://www.primeleague.gg/de/coverages/33286-1-liga-summer-split-2026",
   {
-    waitUntil: "domcontentloaded",
+    waitUntil: "networkidle",
     timeout: 60000
   }
 );
 
-const data = {
-  updated: new Date().toISOString(),
-  title: await page.title(),
-  url: page.url(),
-  bodyLength: (await page.textContent("body"))?.length || 0
-};
+const body = await page.textContent("body");
 
 fs.writeFileSync(
   "primeleague.json",
-  JSON.stringify(data, null, 2)
+  JSON.stringify(
+    {
+      updated: new Date().toISOString(),
+      title: await page.title(),
+      url: page.url(),
+      body
+    },
+    null,
+    2
+  )
 );
 
 await browser.close();
