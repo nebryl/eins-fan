@@ -1034,6 +1034,152 @@ body::before {
   padding: 0;
 }
 
+.bracket-card {
+  background: rgba(0,0,0,0.55) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+  padding: 18px 20px 20px !important;
+}
+
+.playoff-bracket {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  grid-template-rows: auto auto;
+  gap: 24px 26px;
+  align-items: start;
+  min-height: 420px;
+  padding: 8px 4px 12px;
+  overflow-x: auto;
+}
+
+.bracket-column {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bracket-column--ub-round .match-stack,
+.bracket-column--lb-round .match-stack {
+  gap: 68px;
+}
+
+.bracket-column--ub-round,
+.bracket-column--lb-round {
+  padding-right: 8px;
+}
+
+.bracket-column--ub-round .match-card + .match-card,
+.bracket-column--lb-round .match-card + .match-card {
+  margin-top: 8px;
+}
+
+.bracket-column--ub-round::after,
+.bracket-column--ub-final::after,
+.bracket-column--final::after,
+.bracket-column--lb-round::after,
+.bracket-column--lb-two::after,
+.bracket-column--lb-final::after {
+  content: "";
+  position: absolute;
+  right: -17px;
+  top: 56%;
+  width: 18px;
+  height: 2px;
+  background: rgba(255,255,255,0.65);
+}
+
+.bracket-column--ub-final {
+  margin-top: 72px;
+  grid-column: 3;
+}
+
+.bracket-column--lb-two {
+  margin-top: 72px;
+}
+
+.bracket-column--final {
+  align-self: center;
+  justify-self: start;
+  margin-left: 8px;
+}
+
+.bracket-column--lb-final {
+  margin-top: 12px;
+}
+
+.bracket-column--ub-round .match-card::after,
+.bracket-column--lb-round .match-card::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background: rgba(255,255,255,0.65);
+  transform: translateY(-50%);
+}
+
+.bracket-round {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+  margin-bottom: 12px;
+  white-space: nowrap;
+}
+
+.match-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.match-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  min-height: 88px;
+  padding: 0;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+
+.match-card--final {
+  min-height: 90px;
+}
+
+.match-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #f5f5f5;
+}
+
+.match-line + .match-line {
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.team-name {
+  font-size: 0.92rem;
+}
+
+.match-date {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.9);
+  font-weight: 700;
+}
+
+@media (max-width: 980px) {
+  .playoff-bracket {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
 #lolView table {
   width: 100%;
   border-collapse: collapse;
